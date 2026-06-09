@@ -402,9 +402,12 @@ def build_dirac_norm(
 
 def build_operator(
     sample: tuple[np.ndarray, np.ndarray], operator: ModelOperators
-) -> tuple[sparse.coo_matrix, sparse.coo_matrix | None]:
+) -> tuple[sparse.coo_matrix | None, sparse.coo_matrix | None]:
     """Process a single shape (vertices, faces) into operators in a vectorized manner."""
     vertices, faces = sample
+    if operator == ModelOperators.none:
+        return None, None
+
     if operator == ModelOperators.lap_graph_norm:
         return build_normalized_graph_laplacian(faces, vertices.shape[0]), None
 

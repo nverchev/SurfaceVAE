@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 from src.config import Experiment, ModelOperators
-from src.module.layers import LinearLayer, DirResNet, LapResNet
+from src.module.layers import LinearLayer, DirResNet, LapResNet, PointwiseResNet
 from src.data import N_FACES
 
 
@@ -116,10 +116,41 @@ class DirDecoder(BaseDecoder):
         return self._forward_dense(v)
 
 
+class PointNetDecoder(BaseDecoder):
+    """PointNet decoder baseline."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        cfg = Experiment.get_config()
+        self.layers = nn.ModuleList(
+            [
+                PointwiseResNet(cfg.model.n_features, act=self.act)
+                for _ in range(2 * cfg.model.n_blocks_decoder)
+            ]
+        )
+        return
+
+    def forward(
+        self,
+        inputs: torch.Tensor,
+        operator: torch.Tensor,
+        operator_adjoint: torch.Tensor | None,
+        mean_shape: torch.Tensor,
+    ) -> torch.Tensor:
+        x = self._prepare_latent(inputs, mean_shape)
+        for layer in self.layers:
+            x = layer(x)
+
+        return self._forward_dense(x)
+
+
 def get_decoder() -> BaseDecoder:
     """Get the correct decoder based on configuration."""
     cfg = Experiment.get_config()
     operator_type = cfg.model.operator
+    if operator_type == ModelOperators.none:
+        return PointNetDecoder()
+
     if operator_type in (ModelOperators.dirac_norm, ModelOperators.dirac_graph_norm):
         return DirDecoder()
 

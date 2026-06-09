@@ -102,7 +102,9 @@ class COMAData(metaclass=Singleton):
         ]
         op, _ = operators.build_operator((train_shapes[0], faces), self.operator_type)
         op_grp = f.create_group(self.operator_type.name)
-        save_sparse_matrix_to_h5(op_grp, op)
+        if op is not None:
+            save_sparse_matrix_to_h5(op_grp, op)
+
         return
 
     def _compute_group_operators(
@@ -115,7 +117,9 @@ class COMAData(metaclass=Singleton):
             s_data, desc=f"Computing {self.operator_type.name} for {partition.name}"
         ):
             op, op_adj = operators.build_operator((shape, faces), self.operator_type)
-            op_list.append(op)
+            if op is not None:
+                op_list.append(op)
+            
             if op_adj is not None:
                 op_adj_list.append(op_adj)
 
@@ -170,6 +174,9 @@ class COMAData(metaclass=Singleton):
         with h5py.File(self.h5_path, "a") as f:
             faces = get_h5_dataset(f, H5Keys.FACES)[:]
             vertices = get_h5_dataset(f, f"{partition.name}/{H5Keys.VERTICES}")[:]
+            if self.operator_type == ModelOperators.none:
+                return vertices, faces, None, None
+
             operator_is_constant = self.operator_type in (
                 ModelOperators.lap_graph_norm,
                 ModelOperators.dirac_graph_norm,

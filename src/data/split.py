@@ -99,6 +99,9 @@ class COMADatasetSplit(AbstractSplit):
         mean_operator, mean_operator_adjoint = operators.build_operator(
             (self._mean_shape, self._faces), operator_type
         )
+        if mean_operator is None:
+            return torch.empty(0), torch.empty(0)
+        
         mean_operator_sparse = scipy_sparse_to_pytorch_sparse(mean_operator)
         if mean_operator_adjoint is not None:
             mean_operator_adjoint_sparse = scipy_sparse_to_pytorch_sparse(

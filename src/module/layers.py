@@ -196,6 +196,31 @@ class DirResNet(nn.Module):
         return v + v_out, f_out
 
 
+class PointwiseResNet(nn.Module):
+    """Pointwise residual block (no graph/mesh operators)."""
+
+    def __init__(self, n_outputs: int, act: nn.Module) -> None:
+        super().__init__()
+        self.n_outputs = n_outputs
+        self.act = act
+        self.bn_fc0 = LinearLayer(
+            n_outputs, n_outputs, use_batch_norm=True, act=act
+        )
+        self.bn_fc1 = LinearLayer(
+            n_outputs,
+            n_outputs,
+            use_batch_norm=True,
+            act=act,
+            truncated_init=True,
+        )
+        return
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        x = self.bn_fc0(inputs)
+        x = self.bn_fc1(x)
+        return x + inputs
+
+
 def global_average(x: torch.Tensor) -> torch.Tensor:
     """Global average pooling over vertices."""
     return torch.mean(x, dim=1)

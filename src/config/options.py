@@ -12,6 +12,9 @@ class Datasets(enum.StrEnum):
 class ModelOperators(enum.StrEnum):
     """Available graph VAE operators."""
 
+    none = enum.auto()
+    """Pointwise baseline, no operators/graph structure used."""
+
     lap_beltrami = enum.auto()
     """Stiffness matrix from cotangent-weighted Laplace-Beltrami operator."""
 

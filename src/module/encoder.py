@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 from src.config import Experiment, ModelOperators
-from src.module.layers import LinearLayer, global_average, DirResNet, LapResNet
+from src.module.layers import LinearLayer, global_average, DirResNet, LapResNet, PointwiseResNet
 from src.data import N_FACES
 
 
@@ -115,9 +115,41 @@ class DirEncoder(BaseEncoder):
         return self._forward_dense(v)
 
 
+class PointNetEncoder(BaseEncoder):
+    """PointNet encoder baseline."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        cfg = Experiment.get_config()
+        self.layers = nn.ModuleList(
+            [
+                PointwiseResNet(cfg.model.n_features, act=self.act)
+                for _ in range(2 * cfg.model.n_blocks_encoder)
+            ]
+        )
+        return
+
+    @override
+    def forward(
+        self,
+        inputs: torch.Tensor,
+        raw_inputs: torch.Tensor,
+        operator: torch.Tensor | None,
+        operator_adjoint: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        x = self.conv1(inputs)
+        for layer in self.layers:
+            x = layer(x)
+
+        return self._forward_dense(x)
+
+
 def get_encoder() -> BaseEncoder:
     """Get the correct encoder based on configuration."""
     cfg = Experiment.get_config()
+    if cfg.model.operator == ModelOperators.none:
+        return PointNetEncoder()
+
     if cfg.model.operator in (ModelOperators.dirac_norm, ModelOperators.dirac_graph_norm):
         return DirEncoder()
 
