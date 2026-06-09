@@ -21,8 +21,8 @@ def collate_coma_batch(batch: list[tuple[Input, Target]]) -> tuple[Input, Target
     x = torch.stack(xs, 0)
     operators = [item[0].operator for item in batch]
     if not is_tensor_list(operators):
-        operator = None
-        operator_adjoint = None
+        operator = torch.empty(0)
+        operator_adjoint = torch.empty(0)
     else:
         if len(operators) > 0 and all(op is operators[0] for op in operators):
             operator = operators[0]

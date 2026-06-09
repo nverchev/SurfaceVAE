@@ -3,7 +3,7 @@
 import torch
 import torch.nn as nn
 
-from src.config import Experiment
+from src.config import Experiment, ModelOperators
 from src.module.layers import LinearLayer, DirResNet, LapResNet
 from src.data import N_FACES
 
@@ -44,6 +44,15 @@ class BaseDecoder(nn.Module):
     def _forward_dense(self, x: torch.Tensor) -> torch.Tensor:
         mu = self.fc_mu(x)
         return mu
+
+    def forward(
+        self,
+        inputs: torch.Tensor,
+        operator: torch.Tensor,
+        operator_adjoint: torch.Tensor | None,
+        mean_shape: torch.Tensor,
+    ) -> torch.Tensor:
+        raise NotImplementedError()
 
 
 class LapDecoder(BaseDecoder):
@@ -111,13 +120,7 @@ def get_decoder() -> BaseDecoder:
     """Get the correct decoder based on configuration."""
     cfg = Experiment.get_config()
     operator_type = cfg.model.operator
-    from src.config.options import ModelOperators
-
-    is_dirac = operator_type in (
-        ModelOperators.dirac_norm,
-        ModelOperators.dirac_graph_norm,
-    )
-    if is_dirac:
+    if operator_type in (ModelOperators.dirac_norm, ModelOperators.dirac_graph_norm):
         return DirDecoder()
 
     return LapDecoder()

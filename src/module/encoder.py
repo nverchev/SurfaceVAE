@@ -1,9 +1,10 @@
 """Encoder module containing BaseEncoder, LapEncoder, DirEncoder, and get_encoder."""
+from typing import override
 
 import torch
 import torch.nn as nn
 
-from src.config import Experiment
+from src.config import Experiment, ModelOperators
 from src.module.layers import LinearLayer, global_average, DirResNet, LapResNet
 from src.data import N_FACES
 
@@ -14,6 +15,7 @@ class BaseEncoder(nn.Module):
     def __init__(self) -> None:
         super().__init__()
         cfg = Experiment.get_config()
+        self.operator_type = cfg.model.operator
         self.act = cfg.model.activation_cls()
         self.n_features = cfg.model.n_features
         self.dim_latent = cfg.model.dim_latent
@@ -24,6 +26,15 @@ class BaseEncoder(nn.Module):
             truncated_init=True,
         )
         return
+
+    def forward(
+        self,
+        inputs: torch.Tensor,
+        raw_inputs: torch.Tensor,
+        operator: torch.Tensor | None,
+        operator_adjoint: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        raise NotImplementedError()
 
     def _forward_dense(self, x: torch.Tensor) -> torch.Tensor:
         x = global_average(x).squeeze(1)
@@ -48,12 +59,18 @@ class LapEncoder(BaseEncoder):
         )
         return
 
+    @override
     def forward(
         self,
         inputs: torch.Tensor,
-        operator: torch.Tensor,
-        operator_adjoint: torch.Tensor,
+        raw_inputs: torch.Tensor,
+        operator: torch.Tensor | None,
+        operator_adjoint: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        if operator is None or operator.numel() == 0:
+            from src.module.vae import compute_operators_on_the_fly
+            operator, _ = compute_operators_on_the_fly(raw_inputs, self.operator_type)
+
         x = self.conv1(inputs)
         for layer in self.layers:
             x = layer(operator, x)
@@ -77,13 +94,18 @@ class DirEncoder(BaseEncoder):
         )
         return
 
+    @override
     def forward(
         self,
         inputs: torch.Tensor,
-        operator: torch.Tensor,
-        operator_adjoint: torch.Tensor,
+        raw_inputs: torch.Tensor,
+        operator: torch.Tensor | None,
+        operator_adjoint: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        assert operator_adjoint.numel() > 0
+        if operator is None or operator.numel() == 0:
+            from src.module.vae import compute_operators_on_the_fly
+            operator, operator_adjoint = compute_operators_on_the_fly(raw_inputs, self.operator_type)
+
         batch_size, _, _ = inputs.size()
         v = self.conv1(inputs)
         f = torch.zeros(batch_size, self.n_faces, self.n_features, device=inputs.device)
@@ -96,14 +118,7 @@ class DirEncoder(BaseEncoder):
 def get_encoder() -> BaseEncoder:
     """Get the correct encoder based on configuration."""
     cfg = Experiment.get_config()
-    operator_type = cfg.model.operator
-    from src.config.options import ModelOperators
-
-    is_dirac = operator_type in (
-        ModelOperators.dirac_norm,
-        ModelOperators.dirac_graph_norm,
-    )
-    if is_dirac:
+    if cfg.model.operator in (ModelOperators.dirac_norm, ModelOperators.dirac_graph_norm):
         return DirEncoder()
 
     return LapEncoder()

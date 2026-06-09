@@ -220,7 +220,7 @@ class UserSettings:
         trackers (TrackerList): The active trackers configurations
         seed (int | None): The seed for PyTorch/NumPy randomness (None disables manual seeding)
         checkpoint_every (PositiveInt): The number of epochs between saving checkpoints
-        on_the_fly (bool): Whether to load/preprocess data on-the-fly instead of in-memory
+        on_the_fly (bool): Compute operators on-the-fly per batch instead of loading from cache
         load_checkpoint (int): The checkpoint epoch to load (0 starts from scratch)
         n_subprocesses (PositiveInt): Number of subprocesses for distributed training (0 for no parallelism)
     """
