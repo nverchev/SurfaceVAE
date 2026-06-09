@@ -1,4 +1,4 @@
-operator: dirac_norm
+operator: none
 n_features: 32
 dim_latent: 8
 n_blocks_encoder: 2
