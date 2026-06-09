@@ -3,7 +3,7 @@
 import torch
 import torch.nn as nn
 
-from src.config import Experiment
+from src.config import Experiment, ModelOperators
 from src.data.structures import Input, Output
 from src.module.encoder import get_encoder
 from src.module.decoder import get_decoder
@@ -24,6 +24,7 @@ class BaseVAE(nn.Module):
     mean_operator_adj_values: torch.Tensor | None
     mean_operator_adj_size: torch.Size | None
     use_mean_shape: bool
+    operator_type: ModelOperators
 
     def __init__(
         self,
@@ -35,6 +36,7 @@ class BaseVAE(nn.Module):
         cfg = Experiment.get_config()
         self.dim_latent = cfg.model.dim_latent
         self.use_mean_shape = cfg.model.use_mean_shape
+        self.operator_type = cfg.model.operator
         self.recon_logvar = nn.Parameter(torch.tensor([-5.0]))
         self.register_buffer("mean_shape", mean_shape)
         self.register_buffer("mean_shape_center", mean_shape.mean(dim=1, keepdim=True))
@@ -67,7 +69,7 @@ class BaseVAE(nn.Module):
 
     @property
     def mean_operator_adjoint(self) -> torch.Tensor | None:
-        if self.mean_operator_adj_indices is None:
+        if self.mean_operator_adj_indices is None or self.mean_operator_adj_values is None:
             return None
 
         return torch.sparse_coo_tensor(
@@ -98,6 +100,38 @@ class BaseVAE(nn.Module):
     ) -> torch.Tensor:
         return self.decoder(z, mean_operator, mean_operator_adjoint, mean_shape)
 
+    def compute_operators_on_the_fly(
+        self, x: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        from src.data.dataset import COMAData
+        from src.data.operators import build_operator
+        from src.utils.sparse import scipy_sparse_to_pytorch_sparse
+        import scipy.sparse as sparse
+
+        batch_size = x.size(0)
+        faces = COMAData().faces
+        computed_ops = []
+        computed_adjs = []
+        x_cpu = x.detach().cpu()
+        for i in range(batch_size):
+            v_np = x_cpu[i].numpy()
+            op, op_adj = build_operator((v_np, faces), self.operator_type)
+            computed_ops.append(op)
+            if op_adj is not None:
+                computed_adjs.append(op_adj)
+
+        operator_scipy = sparse.block_diag(computed_ops).tocoo()
+        operator = scipy_sparse_to_pytorch_sparse(operator_scipy).to(x.device)
+        if computed_adjs:
+            operator_adjoint_scipy = sparse.block_diag(computed_adjs).tocoo()
+            operator_adjoint = scipy_sparse_to_pytorch_sparse(
+                operator_adjoint_scipy
+            ).to(x.device)
+        else:
+            operator_adjoint = torch.empty(0, device=x.device)
+
+        return operator, operator_adjoint
+
     def forward(
         self,
         inputs: Input,
@@ -105,6 +139,9 @@ class BaseVAE(nn.Module):
         out = Output()
         op = inputs.operator
         op_adj = inputs.operator_adjoint
+        if op is None or op_adj is None:
+            op, op_adj = self.compute_operators_on_the_fly(inputs.x)
+
         sample = self.normalize_sample(inputs.x)
         out.mu, out.logvar = self.encode(sample, op, op_adj).chunk(2, dim=-1)
         out.z = self.sample(out.mu, out.logvar) if self.training else out.mu

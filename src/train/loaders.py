@@ -21,32 +21,8 @@ def collate_coma_batch(batch: list[tuple[Input, Target]]) -> tuple[Input, Target
     x = torch.stack(xs, 0)
     operators = [item[0].operator for item in batch]
     if not is_tensor_list(operators):
-        from src.data.dataset import COMAData
-        from src.data.operators import build_operator
-        from src.config import Experiment
-        from src.utils.sparse import scipy_sparse_to_pytorch_sparse
-        import scipy.sparse as sparse
-
-        cfg = Experiment.get_config()
-        operator_type = cfg.model.operator
-        faces = COMAData().faces
-        computed_ops = []
-        computed_adjs = []
-        for item in batch:
-            v_np = item[1].x.numpy()
-            op, op_adj = build_operator((v_np, faces), operator_type)
-            computed_ops.append(op)
-            if op_adj is not None:
-                computed_adjs.append(op_adj)
-
-        operator_scipy = sparse.block_diag(computed_ops).tocoo()
-        operator = scipy_sparse_to_pytorch_sparse(operator_scipy)
-        if computed_adjs:
-            operator_adjoint_scipy = sparse.block_diag(computed_adjs).tocoo()
-            operator_adjoint = scipy_sparse_to_pytorch_sparse(operator_adjoint_scipy)
-        else:
-            operator_adjoint = torch.empty(0)
-
+        operator = None
+        operator_adjoint = None
     else:
         if len(operators) > 0 and all(op is operators[0] for op in operators):
             operator = operators[0]

@@ -113,7 +113,13 @@ def setup_and_train(cfg: AllConfig) -> None:
 @hydra_main
 def main(cfg: AllConfig) -> None:
     """Entry point for training."""
-    setup_and_train(cfg)
+    n_processes = cfg.user.n_subprocesses
+    if n_processes:
+        from src.utils import DistributedWorker
+        DistributedWorker(setup_and_train, n_processes).spawn(cfg)
+    else:
+        setup_and_train(cfg)
+
     return
 
 

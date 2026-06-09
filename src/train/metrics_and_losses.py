@@ -31,7 +31,7 @@ class ReconstructionErrorCompiler(
     @classmethod
     @override
     def from_value(cls, value: torch.Tensor) -> Self:
-        return cls([value.detach().cpu()])
+        return cls([value.detach()])
 
     @override
     def merge(self, other: Self) -> None:  # ty: ignore[invalid-method-override]
@@ -113,7 +113,7 @@ def get_nll(normalize: Callable[[torch.Tensor], torch.Tensor]) -> Loss[Output, T
         recon_mu_flat = outputs.recon_mu.view(targets.x.size(0), -1)
         recon_logvar = outputs.recon_logvar.clamp(-6, -1)
         if outputs.model_epoch < annealing_period:
-            recon_logvar = recon_logvar.detach()
+            recon_logvar = recon_logvar * 0.0 + recon_logvar.detach()
 
         recon_logvar_flat = recon_logvar.expand_as(recon_mu_flat)
         return -log_normal_diag(x_flat, recon_mu_flat, recon_logvar_flat)
