@@ -1,0 +1,19 @@
+study_name:
+  vae_learn
+
+n_trials: 100
+
+params:
+  train.learn.learning_rate:
+    suggest: suggest_float
+    settings:
+      low: 1e-04
+      high: 5e-02
+      log: true
+
+  train.learn.weight_decay:
+    suggest: suggest_float
+    settings:
+      low: 1e-06
+      high: 1e-03
+      log: true

@@ -1,0 +1,8 @@
+defaults:
+  - ../optuna@_global_
+  - _self_
+  - tune: learn
+
+db_name: vae_optimization
+overrides: []
+n_epochs: 100

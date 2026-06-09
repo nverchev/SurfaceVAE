@@ -1,0 +1,10 @@
+defaults:
+  - learn: default_learn
+  - early_stopping: default_early_stopping
+  - _self_
+
+batch_size: 64
+n_epochs: 1000
+loss_type: elbo
+
+annealing_period: 800

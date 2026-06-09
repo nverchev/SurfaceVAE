@@ -1,0 +1,7 @@
+function: cosine
+restart_interval: 1000
+restart_fraction: 0.1
+warmup_steps: 0
+settings:
+  min_decay: 0.01
+  decay_steps: 800

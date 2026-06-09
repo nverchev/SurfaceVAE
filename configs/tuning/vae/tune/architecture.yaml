@@ -1,0 +1,28 @@
+study_name:
+  vae_architecture
+
+n_trials: 100
+
+params:
+
+  model.n_features:
+    suggest: suggest_categorical
+    settings:
+      choices: [32, 64, 128]
+
+  model.n_blocks_encoder:
+    suggest: suggest_int
+    settings:
+      low: 2
+      high: 4
+
+  model.n_blocks_decoder:
+    suggest: suggest_int
+    settings:
+      low: 2
+      high: 4
+
+  model.n_dense:
+    suggest: suggest_categorical
+    settings:
+      choices: [64, 128, 256]

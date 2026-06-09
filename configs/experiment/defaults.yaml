@@ -1,0 +1,10 @@
+defaults:
+  - all_config
+  - model: lap_vae
+  - user: user_settings
+  - data: default_data
+  - train: default_train
+  - _self_
+
+variation: development
+final: false

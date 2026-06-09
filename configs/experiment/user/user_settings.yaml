@@ -1,0 +1,18 @@
+# User settings
+
+seed: 42
+
+# Options for training efficiency
+cpu: false
+n_workers: 0
+on_the_fly: false
+checkpoint_every: 100
+load_checkpoint: 0
+
+# Optional trackers for monitoring the experiment
+trackers:
+  hydra: true
+  tensorboard: true
+  wandb: false
+  sqlalchemy: false
+  csv: true

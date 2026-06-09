@@ -1,0 +1,7 @@
+operator: dirac_norm
+n_features: 64
+dim_latent: 8
+n_blocks_encoder: 2
+n_blocks_decoder: 3
+activation: ELU
+n_dense: 64
