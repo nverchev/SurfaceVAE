@@ -3,11 +3,11 @@
 import dataclasses
 import pathlib
 
-from typing import Any, Annotated
+from typing import Any, Annotated, Self
 
 import torch
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic.dataclasses import dataclass
 from omegaconf import DictConfig
 
@@ -153,8 +153,25 @@ class TrainingConfig:
     n_epochs: StrictlyPositiveInt
     early_stopping: EarlyStoppingConfig
     loss_type: LossTypes
+    _n_subprocesses: PositiveInt
 
     annealing_period: PositiveInt = 100
+
+    @model_validator(mode="after")
+    def _check_batch_size(self) -> Self:
+        if self._n_subprocesses and self.batch_size % self._n_subprocesses != 0:
+            msg = "Global batch size {} not divisible by number of devices {}."
+            raise ValueError(msg.format(self.batch_size, self._n_subprocesses))
+
+        return self
+
+    @property
+    def batch_size_per_device(self) -> int:
+        """The batch size per device."""
+        if self._n_subprocesses == 0:
+            return self.batch_size
+
+        return self.batch_size // self._n_subprocesses
 
 
 @dataclass

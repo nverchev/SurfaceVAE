@@ -6,5 +6,7 @@ defaults:
 batch_size: 64
 n_epochs: 1000
 loss_type: elbo
+_n_subprocesses: ${user.n_subprocesses}
 
 annealing_period: 800
+
