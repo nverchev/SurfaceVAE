@@ -1,0 +1,4 @@
+defaults:
+  - extrapolation
+
+leave_out: bareteeth

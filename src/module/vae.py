@@ -7,7 +7,7 @@ import torch.nn as nn
 import scipy.sparse as sparse
 
 from src.config import Experiment, ModelOperators
-from src.data import COMAData, Input, Output, build_operator
+from src.data import get_active_dataset, Input, Output, build_operator
 from src.module.encoder import get_encoder
 from src.module.decoder import get_decoder
 from src.utils.sparse import scipy_sparse_to_pytorch_sparse
@@ -190,7 +190,7 @@ def compute_operators_on_the_fly(
     x: torch.Tensor, operator_type: ModelOperators
 ) -> tuple[torch.Tensor, torch.Tensor]:
     batch_size = x.size(0)
-    faces = COMAData().faces
+    faces = get_active_dataset().faces
     computed_ops = []
     computed_adjs = []
     x_cpu = x.detach().cpu()

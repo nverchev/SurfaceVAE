@@ -7,6 +7,24 @@ class Datasets(enum.StrEnum):
     """Dataset choices."""
 
     COMA = enum.auto()
+    COMA_EXTRAPOLATION = enum.auto()
+
+
+class Expressions(enum.StrEnum):
+    """Available facial expressions in the COMA dataset."""
+
+    bareteeth = enum.auto()
+    cheeks_in = enum.auto()
+    eyebrow = enum.auto()
+    high_smile = enum.auto()
+    lips_back = enum.auto()
+    lips_up = enum.auto()
+    mouth_down = enum.auto()
+    mouth_extreme = enum.auto()
+    mouth_middle = enum.auto()
+    mouth_open = enum.auto()
+    mouth_side = enum.auto()
+    mouth_up = enum.auto()
 
 
 class ModelOperators(enum.StrEnum):

@@ -15,6 +15,7 @@ from src.config.environment import EnvSettings, VERSION
 from src.config.torch import ActClass, get_activation_cls, get_optim_cls, set_seed
 from src.config.options import (
     Datasets,
+    Expressions,
     ModelOperators,
     LossTypes,
     Schedulers,
@@ -34,6 +35,16 @@ class DatasetConfig:
     """
 
     name: Datasets
+    leave_out: Expressions | None = None
+
+    @model_validator(mode="after")
+    def _validate_extrapolation(self) -> Self:
+        if self.name == Datasets.COMA_EXTRAPOLATION:
+            if self.leave_out is None:
+                msg = "Leave-out expression must be specified for COMA_EXTRAPOLATION."
+                raise ValueError(msg)
+
+        return self
 
 
 @dataclass
