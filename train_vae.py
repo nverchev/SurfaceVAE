@@ -41,10 +41,14 @@ def train_vae(trial: Trial | None = None) -> None:
     cfg = Experiment.get_config()
     train_ds, eval_ds = get_splits()
     train_loader = COMADataLoader(
-        train_ds, batch_size=cfg.train.batch_size_per_device, n_workers=cfg.user.n_workers
+        train_ds,
+        batch_size=cfg.train.batch_size_per_device,
+        n_workers=cfg.user.n_workers,
     )
     eval_loader = COMADataLoader(
-        eval_ds, batch_size=cfg.train.batch_size_per_device, n_workers=cfg.user.n_workers
+        eval_ds,
+        batch_size=cfg.train.batch_size_per_device,
+        n_workers=cfg.user.n_workers,
     )
     vae = get_vae_module(
         mean_shape=train_ds.mean_shape,
@@ -116,6 +120,7 @@ def main(cfg: AllConfig) -> None:
     n_processes = cfg.user.n_subprocesses
     if n_processes:
         from src.utils import DistributedWorker
+
         DistributedWorker(setup_and_train, n_processes).spawn(cfg)
     else:
         setup_and_train(cfg)

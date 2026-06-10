@@ -203,9 +203,7 @@ class PointwiseResNet(nn.Module):
         super().__init__()
         self.n_outputs = n_outputs
         self.act = act
-        self.bn_fc0 = LinearLayer(
-            n_outputs, n_outputs, use_batch_norm=True, act=act
-        )
+        self.bn_fc0 = LinearLayer(n_outputs, n_outputs, use_batch_norm=True, act=act)
         self.bn_fc1 = LinearLayer(
             n_outputs,
             n_outputs,

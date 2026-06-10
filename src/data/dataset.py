@@ -119,7 +119,7 @@ class COMAData(metaclass=Singleton):
             op, op_adj = operators.build_operator((shape, faces), self.operator_type)
             if op is not None:
                 op_list.append(op)
-            
+
             if op_adj is not None:
                 op_adj_list.append(op_adj)
 
@@ -263,6 +263,7 @@ def get_splits() -> tuple[COMADatasetSplit, COMADatasetSplit]:
     splits: tuple[COMADatasetSplit, COMADatasetSplit] | None = None
     if cfg.user.n_subprocesses:
         import torch.distributed as dist
+
         rank = dist.get_rank()
         for i in range(cfg.user.n_subprocesses):
             if rank == i:
@@ -276,4 +277,3 @@ def get_splits() -> tuple[COMADatasetSplit, COMADatasetSplit]:
         raise RuntimeError("Splits could not be created.")
 
     return splits
-

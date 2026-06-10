@@ -87,8 +87,10 @@ def _get_mock_operators(
     vertices: np.ndarray, faces: np.ndarray, operator_type: ModelOperators
 ) -> tuple[torch.Tensor, torch.Tensor | None]:
     """Build mock operators as PyTorch sparse tensors."""
-
     op, op_adj = build_operator((vertices, faces), operator_type)
+    if op is None:
+        return torch.empty(0), torch.empty(0)
+
     mean_operator = scipy_sparse_to_pytorch_sparse(op)
     if op_adj is not None:
         mean_operator_adjoint = scipy_sparse_to_pytorch_sparse(op_adj)

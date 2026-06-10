@@ -1,11 +1,18 @@
 """Encoder module containing BaseEncoder, LapEncoder, DirEncoder, and get_encoder."""
+
 from typing import override
 
 import torch
 import torch.nn as nn
 
 from src.config import Experiment, ModelOperators
-from src.module.layers import LinearLayer, global_average, DirResNet, LapResNet, PointwiseResNet
+from src.module.layers import (
+    LinearLayer,
+    global_average,
+    DirResNet,
+    LapResNet,
+    PointwiseResNet,
+)
 from src.data import N_FACES
 
 
@@ -69,6 +76,7 @@ class LapEncoder(BaseEncoder):
     ) -> torch.Tensor:
         if operator is None or operator.numel() == 0:
             from src.module.vae import compute_operators_on_the_fly
+
             operator, _ = compute_operators_on_the_fly(raw_inputs, self.operator_type)
 
         x = self.conv1(inputs)
@@ -104,7 +112,10 @@ class DirEncoder(BaseEncoder):
     ) -> torch.Tensor:
         if operator is None or operator.numel() == 0:
             from src.module.vae import compute_operators_on_the_fly
-            operator, operator_adjoint = compute_operators_on_the_fly(raw_inputs, self.operator_type)
+
+            operator, operator_adjoint = compute_operators_on_the_fly(
+                raw_inputs, self.operator_type
+            )
 
         batch_size, _, _ = inputs.size()
         v = self.conv1(inputs)
@@ -150,7 +161,10 @@ def get_encoder() -> BaseEncoder:
     if cfg.model.operator == ModelOperators.none:
         return PointNetEncoder()
 
-    if cfg.model.operator in (ModelOperators.dirac_norm, ModelOperators.dirac_graph_norm):
+    if cfg.model.operator in (
+        ModelOperators.dirac_norm,
+        ModelOperators.dirac_graph_norm,
+    ):
         return DirEncoder()
 
     return LapEncoder()

@@ -3,6 +3,7 @@
 from src.data.dataset import COMAData, N_FACES, N_VERTICES, get_splits
 from src.data.split import COMADatasetSplit, Partitions
 from src.data.structures import Input, Target, Output
+from src.data.operators import build_operator
 
 __all__ = [
     "Input",
@@ -14,4 +15,5 @@ __all__ = [
     "get_splits",
     "N_FACES",
     "N_VERTICES",
+    "build_operator",
 ]

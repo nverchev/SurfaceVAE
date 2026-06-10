@@ -10,8 +10,8 @@ import torch
 import torch.distributed as dist
 from torch.multiprocessing.spawn import spawn
 
-P = ParamSpec('P')
-T = TypeVar('T')
+P = ParamSpec("P")
+T = TypeVar("T")
 
 
 class DistributedWorker[**P, T]:
@@ -40,14 +40,17 @@ class DistributedWorker[**P, T]:
         return
 
     def _setup_distributed(self, rank: int) -> None:
-        os.environ['MASTER_ADDR'] = 'localhost'
-        os.environ['MASTER_PORT'] = '12355'
+        os.environ["MASTER_ADDR"] = "localhost"
+        os.environ["MASTER_PORT"] = "12355"
         torch.cuda.set_device(rank)
         acc_or_none = torch.accelerator.current_accelerator()
-        acc = torch.device('cpu') if acc_or_none is None else acc_or_none
+        acc = torch.device("cpu") if acc_or_none is None else acc_or_none
         backend = torch.distributed.get_default_backend_for_device(acc)
         dist.init_process_group(
-            backend, rank=rank, init_method=f'tcp://127.0.0.1:{self.port}', world_size=self.world_size
+            backend,
+            rank=rank,
+            init_method=f"tcp://127.0.0.1:{self.port}",
+            world_size=self.world_size,
         )
 
         return
@@ -56,7 +59,7 @@ class DistributedWorker[**P, T]:
     def _get_free_port() -> str:
         """Find an available port on localhost."""
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(('', 0))
+            s.bind(("", 0))
             return str(s.getsockname()[1])
 
     @staticmethod
