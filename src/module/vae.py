@@ -2,16 +2,19 @@
 
 from typing import cast
 
-
 import torch
 import torch.nn as nn
+import scipy.sparse as sparse
+
 import scipy.sparse as sparse
 
 
 from src.config import Experiment, ModelOperators
 from src.data import COMAData, Input, Output, build_operator
+from src.data import COMAData, Input, Output, build_operator
 from src.module.encoder import get_encoder
 from src.module.decoder import get_decoder
+from src.utils.sparse import scipy_sparse_to_pytorch_sparse
 from src.utils.sparse import scipy_sparse_to_pytorch_sparse
 
 
@@ -56,6 +59,9 @@ class BaseVAE(nn.Module):
             self.register_buffer(
                 "mean_operator_indices", torch.empty(0, dtype=torch.long)
             )
+            self.register_buffer(
+                "mean_operator_indices", torch.empty(0, dtype=torch.long)
+            )
             self.register_buffer("mean_operator_values", torch.empty(0))
             self.mean_operator_size = torch.Size([0, 0])
 
@@ -65,6 +71,9 @@ class BaseVAE(nn.Module):
             self.register_buffer("mean_operator_adj_values", coalesced_adj.values())
             self.mean_operator_adj_size = coalesced_adj.size()
         else:
+            self.register_buffer(
+                "mean_operator_adj_indices", torch.empty(0, dtype=torch.long)
+            )
             self.register_buffer(
                 "mean_operator_adj_indices", torch.empty(0, dtype=torch.long)
             )
@@ -131,6 +140,9 @@ class BaseVAE(nn.Module):
         out.mu, out.logvar = self.encode(
             sample, inputs.x, operator, operator_adjoint
         ).chunk(2, dim=-1)
+        out.mu, out.logvar = self.encode(
+            sample, inputs.x, operator, operator_adjoint
+        ).chunk(2, dim=-1)
         out.z = self.sample(out.mu, out.logvar) if self.training else out.mu
         if self.use_mean_shape:
             decoder_mean_shape = self.normalize_sample(self.mean_shape)
@@ -190,6 +202,11 @@ class BaseVAE(nn.Module):
             ModelOperators.lap_beltrami_norm,
         ):
             return operator * (self.mean_shape_std**2)
+        if self.operator_type in (
+            ModelOperators.lap_beltrami,
+            ModelOperators.lap_beltrami_norm,
+        ):
+            return operator * (self.mean_shape_std**2)
 
         if self.operator_type == ModelOperators.dirac_norm:
             return operator * self.mean_shape_std
@@ -213,8 +230,15 @@ def compute_operators_on_the_fly(
             computed_adjs.append(op_adj)
 
     operator_scipy = cast(sparse.coo_matrix, sparse.block_diag(computed_ops).tocoo())
+    operator_scipy = cast(sparse.coo_matrix, sparse.block_diag(computed_ops).tocoo())
     operator = scipy_sparse_to_pytorch_sparse(operator_scipy).to(x.device)
     if computed_adjs:
+        operator_adjoint_scipy = cast(
+            sparse.coo_matrix, sparse.block_diag(computed_adjs).tocoo()
+        )
+        operator_adjoint = scipy_sparse_to_pytorch_sparse(operator_adjoint_scipy).to(
+            x.device
+        )
         operator_adjoint_scipy = cast(
             sparse.coo_matrix, sparse.block_diag(computed_adjs).tocoo()
         )
