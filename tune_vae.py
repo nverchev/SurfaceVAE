@@ -29,6 +29,7 @@ def set_objective(tune_cfg: DictConfig) -> Callable[[optuna.Trial], float]:
         overrides = suggest_overrides(tune_cfg, trial)
         trial_cfg = get_config_all(overrides)
         trial_cfg.train.n_epochs = tune_cfg.n_epochs
+        trial_cfg.user.seed = tune_cfg.seed
         exp = Experiment(
             trial_cfg,
             name=trial_cfg.name,

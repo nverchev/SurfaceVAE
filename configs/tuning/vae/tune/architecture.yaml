@@ -5,11 +5,6 @@ n_trials: 100
 
 params:
 
-  model.n_features:
-    suggest: suggest_categorical
-    settings:
-      choices: [32, 64, 128]
-
   model.n_blocks_encoder:
     suggest: suggest_int
     settings:

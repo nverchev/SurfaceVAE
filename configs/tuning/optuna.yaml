@@ -1,6 +1,8 @@
 db_location: "optimization_db"
 renderer: firefox
 storage: "sqlite:///${db_location}/${db_name}.db"
+seed: null
+
 
 tune:
   use_pruner: false
