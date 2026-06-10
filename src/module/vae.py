@@ -6,15 +6,10 @@ import torch
 import torch.nn as nn
 import scipy.sparse as sparse
 
-import scipy.sparse as sparse
-
-
 from src.config import Experiment, ModelOperators
-from src.data import COMAData, Input, Output, build_operator
 from src.data import COMAData, Input, Output, build_operator
 from src.module.encoder import get_encoder
 from src.module.decoder import get_decoder
-from src.utils.sparse import scipy_sparse_to_pytorch_sparse
 from src.utils.sparse import scipy_sparse_to_pytorch_sparse
 
 
