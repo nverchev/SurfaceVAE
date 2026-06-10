@@ -124,10 +124,7 @@ class BaseVAE(nn.Module):
     ) -> torch.Tensor:
         return self.decoder(z, mean_operator, mean_operator_adjoint, mean_shape)
 
-    def forward(
-        self,
-        inputs: Input,
-    ) -> Output:
+    def forward(self, inputs: Input) -> Output:
         out = Output()
         sample = self.normalize_sample(inputs.x)
         operator = self.normalize_operator(inputs.operator)
@@ -135,52 +132,32 @@ class BaseVAE(nn.Module):
         out.mu, out.logvar = self.encode(
             sample, inputs.x, operator, operator_adjoint
         ).chunk(2, dim=-1)
-        out.mu, out.logvar = self.encode(
-            sample, inputs.x, operator, operator_adjoint
-        ).chunk(2, dim=-1)
         out.z = self.sample(out.mu, out.logvar) if self.training else out.mu
-        if self.use_mean_shape:
-            decoder_mean_shape = self.normalize_sample(self.mean_shape)
-        else:
-            decoder_mean_shape = torch.zeros_like(self.mean_shape)
-
+        decoder_mean_shape = self.normalize_sample(self.mean_shape)
         mean_operator = self.normalize_operator(self.mean_operator)
         mean_operator_adjoint = self.normalize_operator(self.mean_operator_adjoint)
         out.recon_mu = self.decode(
-            out.z,
-            mean_operator,
-            mean_operator_adjoint,
-            decoder_mean_shape,
+            out.z, mean_operator, mean_operator_adjoint, decoder_mean_shape
         )
         out.recon_logvar = self.recon_logvar
         return out
 
-    def generate_sample(
-        self,
-        n_samples: int,
-    ) -> Output:
+    def generate_sample(self, n_samples: int) -> torch.Tensor:
         out = Output()
         out.z = torch.randn(n_samples, self.dim_latent, device=self.mean_shape.device)
-        if self.use_mean_shape:
-            decoder_mean_shape = self.normalize_sample(self.mean_shape)
-        else:
-            decoder_mean_shape = torch.zeros_like(self.mean_shape)
-
+        decoder_mean_shape = self.normalize_sample(self.mean_shape)
         mean_operator = self.normalize_operator(self.mean_operator)
         mean_operator_adjoint = self.normalize_operator(self.mean_operator_adjoint)
-        out.recon_mu = self.decode(
-            out.z,
-            mean_operator,
-            mean_operator_adjoint,
-            decoder_mean_shape,
+        recon_mu = self.decode(
+            out.z, mean_operator, mean_operator_adjoint, decoder_mean_shape
         )
-        return out
+        return self.denormalize_sample(recon_mu)
 
     def normalize_sample(self, sample: torch.Tensor) -> torch.Tensor:
         if self.use_mean_shape:
-            return (sample - self.mean_shape) / (self.mean_shape_std + 1e-8)
+            return (sample - self.mean_shape_center) / (self.mean_shape_std + 1e-8)
 
-        return (sample - self.mean_shape_center) / (self.mean_shape_std + 1e-8)
+        return (sample - self.mean_shape) / (self.mean_shape_std + 1e-8)
 
     def denormalize_sample(self, sample: torch.Tensor) -> torch.Tensor:
         if self.use_mean_shape:
@@ -225,15 +202,8 @@ def compute_operators_on_the_fly(
             computed_adjs.append(op_adj)
 
     operator_scipy = cast(sparse.coo_matrix, sparse.block_diag(computed_ops).tocoo())
-    operator_scipy = cast(sparse.coo_matrix, sparse.block_diag(computed_ops).tocoo())
     operator = scipy_sparse_to_pytorch_sparse(operator_scipy).to(x.device)
     if computed_adjs:
-        operator_adjoint_scipy = cast(
-            sparse.coo_matrix, sparse.block_diag(computed_adjs).tocoo()
-        )
-        operator_adjoint = scipy_sparse_to_pytorch_sparse(operator_adjoint_scipy).to(
-            x.device
-        )
         operator_adjoint_scipy = cast(
             sparse.coo_matrix, sparse.block_diag(computed_adjs).tocoo()
         )
