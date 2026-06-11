@@ -104,18 +104,19 @@ def log_normal_diag(
 
 def get_nll(normalize: Callable[[torch.Tensor], torch.Tensor]) -> Loss[Output, Target]:
     """Get the reconstruction log-likelihood using a normalization callable."""
-    cfg = Experiment.get_config()
-    annealing_period = cfg.train.annealing_period
 
     def _nll(outputs: Output, targets: Target) -> torch.Tensor:
         targets_x_normalized = normalize(targets.x)
         x_flat = targets_x_normalized.view(targets.x.size(0), -1)
         recon_mu_flat = outputs.recon_mu.view(targets.x.size(0), -1)
         recon_logvar = outputs.recon_logvar.clamp(-6, -1)
-        if outputs.model_epoch < annealing_period:
-            recon_logvar = recon_logvar * 0.0 + recon_logvar.detach()
+        if recon_logvar.numel() > 1:
+            recon_logvar_flat = (
+                recon_logvar.view(-1).unsqueeze(0).expand_as(recon_mu_flat)
+            )
+        else:
+            recon_logvar_flat = recon_logvar.expand_as(recon_mu_flat)
 
-        recon_logvar_flat = recon_logvar.expand_as(recon_mu_flat)
         return -log_normal_diag(x_flat, recon_mu_flat, recon_logvar_flat)
 
     return Loss(_nll, name="NLL")
@@ -136,7 +137,7 @@ def get_pointwise_variance() -> Metric[Output, Target]:
     """Metric for average recon_var across batch."""
 
     def _pointwise_variance(outputs: Output, _: Target) -> torch.Tensor:
-        return outputs.recon_logvar.exp()
+        return outputs.recon_logvar.exp().mean()
 
     return Metric(_pointwise_variance, name="PVar")
 

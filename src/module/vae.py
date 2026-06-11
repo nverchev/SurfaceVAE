@@ -41,7 +41,7 @@ class BaseVAE(nn.Module):
         self.dim_latent = cfg.model.dim_latent
         self.use_mean_shape = cfg.model.use_mean_shape
         self.operator_type = cfg.model.operator
-        self.recon_logvar = nn.Parameter(torch.tensor([-5.0]))
+        self.recon_logvar = nn.Parameter(torch.full((mean_shape.size(0), 3), -5.0))
         self.register_buffer("mean_shape", mean_shape)
         self.register_buffer("mean_shape_center", mean_shape.mean(dim=1, keepdim=True))
         self.register_buffer("mean_shape_std", mean_shape.std())
