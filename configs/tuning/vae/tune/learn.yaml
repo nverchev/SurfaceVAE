@@ -17,3 +17,8 @@ params:
       low: 1e-06
       high: 1e-03
       log: true
+
+  train.batch_size:
+    suggest: suggest_categorical
+    settings:
+      choices: [16, 32, 64, 128]
