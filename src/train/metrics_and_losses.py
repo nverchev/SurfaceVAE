@@ -109,10 +109,13 @@ def get_nll(normalize: Callable[[torch.Tensor], torch.Tensor]) -> Loss[Output, T
         targets_x_normalized = normalize(targets.x)
         x_flat = targets_x_normalized.view(targets.x.size(0), -1)
         recon_mu_flat = outputs.recon_mu.view(targets.x.size(0), -1)
-        recon_logvar = outputs.recon_logvar.clamp(-6, -1)
-        if recon_logvar.numel() > 1:
+        recon_logvar = outputs.recon_logvar.clamp(-10.0, -1.0)
+        if recon_logvar.ndim > 1:
+            if recon_logvar.size(1) == 1:
+                recon_logvar = recon_logvar.expand(-1, 3)
+
             recon_logvar_flat = (
-                recon_logvar.view(-1).unsqueeze(0).expand_as(recon_mu_flat)
+                recon_logvar.flatten().unsqueeze(0).expand_as(recon_mu_flat)
             )
         else:
             recon_logvar_flat = recon_logvar.expand_as(recon_mu_flat)
