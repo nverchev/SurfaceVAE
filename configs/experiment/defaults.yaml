@@ -6,5 +6,5 @@ defaults:
   - train: default_train
   - _self_
 
-variation: development
+variation:
 final: false

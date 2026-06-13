@@ -7,6 +7,7 @@ from omegaconf import DictConfig, OmegaConf
 from optuna import visualization
 
 from src.config import ConfigPath
+from src.config.environment import VERSION, get_current_branch
 
 
 def get_past_final_values(trial: optuna.Trial) -> list[float]:
@@ -51,12 +52,14 @@ def impute_failed_trial(trial: optuna.Trial) -> float:
 
 def get_study_name(tuning_scheme: str, overrides: list[str]) -> str:
     """Get the study name from the configuration."""
-    from src.config.environment import VERSION
-
     version = f"v{VERSION}"
     with (ConfigPath.CONFIGS.get_path() / "defaults").with_suffix(".yaml").open() as f:
         loaded_cfg = yaml.safe_load(f)
-        variation = loaded_cfg["variation"]
+        variation = loaded_cfg["variation"] or get_current_branch()
+
+    if variation is None:
+        msg = "Variation must be set or a valid git branch must be available."
+        raise ValueError(msg)
 
     override_iter = map(_remove_base_specification, overrides)
     override_iter = map(_remove_configuration_dir, override_iter)

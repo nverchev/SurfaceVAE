@@ -2,6 +2,8 @@
 
 import enum
 import pathlib
+import shutil
+import subprocess
 import tomllib
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -44,3 +46,28 @@ class ConfigPath(enum.StrEnum):
     def relative(self) -> str:
         """Relative path to folder."""
         return f"../../{self.get_folder()}/{self}"
+
+
+def get_current_branch() -> str:
+    """Get the current git branch name."""
+    git_command = shutil.which("git")
+    if git_command is None:
+        raise ValueError("git not found in PATH.")
+
+    try:
+        result = subprocess.run(
+            [git_command, "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError as e:
+        msg = f"Failed to determine git branch: {e.stderr.strip()}"
+        raise ValueError(msg) from e
+
+    branch = result.stdout.strip()
+    if branch == "HEAD":
+        msg = "Detached HEAD state detected. Please checkout a branch."
+        raise ValueError(msg)
+
+    return branch

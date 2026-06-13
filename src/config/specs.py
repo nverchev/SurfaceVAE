@@ -1,5 +1,7 @@
 """Specification for the configuration files."""
 
+from functools import cached_property
+
 import dataclasses
 import pathlib
 
@@ -11,7 +13,7 @@ from pydantic import Field, model_validator
 from pydantic.dataclasses import dataclass
 from omegaconf import DictConfig
 
-from src.config.environment import EnvSettings, VERSION
+from src.config.environment import EnvSettings, VERSION, get_current_branch
 from src.config.torch import ActClass, get_activation_cls, get_optim_cls, set_seed
 from src.config.options import (
     Datasets,
@@ -291,22 +293,43 @@ class AllConfig:
         tags (list[str]): Descriptive tags for the experiment run
     """
 
-    variation: str
     final: bool
     model: ModelConfig
     user: UserSettings
     data: DataConfig
     train: TrainingConfig
     tags: list[str] = dataclasses.field(default_factory=list)
-    version = f"v{VERSION}"
+    version: str = f"v{VERSION}"
+    variation: str | None = None
+
+    @cached_property
+    def git_branch(self) -> str:
+        """The current git branch.
+
+        Raises:
+            ValueError: If git is not available or if HEAD is detached.
+        """
+        try:
+            return get_current_branch()
+        except ValueError as ve:
+            msg = "Could not resolve git branch. Please specify 'variation' in the config."
+            raise ValueError(msg) from ve
 
     @property
     def name(self) -> str:
         """The full name of the experiment."""
-        out = f"{self.variation}_final" if self.final else self.variation
-        return out[:255]
+        return (
+            f"{self.resolved_variation}_final"
+            if self.final
+            else self.resolved_variation
+        )
 
     @property
     def project(self) -> str:
         """Project name for logging."""
         return "FixedGraphVariationalAutoEncoder" + str(self.version)
+
+    @property
+    def resolved_variation(self) -> str:
+        """The resolved variation."""
+        return self.variation or self.git_branch

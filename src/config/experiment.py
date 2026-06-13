@@ -72,7 +72,7 @@ def update_exp_name(cfg: AllConfig, overrides: list[str]) -> None:
         if override.split(".")[0] != "user"
         and override.split("=")[0] not in ("final", "variation")
     ]
-    cfg.variation = "_".join([cfg.variation, *overrides]).replace("/", "_")
+    cfg.variation = "_".join([cfg.resolved_variation, *overrides]).replace("/", "_")
     cfg.tags = overrides
     return
 
