@@ -2,7 +2,6 @@
 
 import abc
 import enum
-import glob
 import pathlib
 
 from typing import Any, ClassVar
@@ -141,22 +140,18 @@ class BaseCOMAData(metaclass=Singleton):
 
         return
 
-    def _get_sorted_ply_paths(self) -> list[str]:
+    def _get_sorted_ply_paths(self) -> list[pathlib.Path]:
         """Gather all .ply mesh paths in filesystem order."""
-        return glob.glob(str(self.coma_dir / "*" / "*" / "*.ply"))
+        return list(self.coma_dir.glob("*/*/*.ply"))
 
-    def _get_subject_labels(self, paths: list[str]) -> np.ndarray:
+    def _get_subject_labels(self, paths: list[pathlib.Path]) -> np.ndarray:
         """Get subject labels from paths."""
-        subject_dirs = sorted(
-            [pathlib.Path(d).name for d in glob.glob(str(self.coma_dir / "FaceTalk_*"))]
-        )
+        subject_dirs = sorted([d.name for d in self.coma_dir.glob("FaceTalk_*")])
         subject_to_id = {name: i for i, name in enumerate(subject_dirs)}
-        labels = [
-            subject_to_id.get(pathlib.Path(p).parent.parent.name, 0) for p in paths
-        ]
+        labels = [subject_to_id.get(p.parent.parent.name, 0) for p in paths]
         return np.array(labels)
 
-    def _load_shapes_from_paths(self, paths: list[str]) -> np.ndarray:
+    def _load_shapes_from_paths(self, paths: list[pathlib.Path]) -> np.ndarray:
         """Load vertices from the given list of .ply paths."""
         shapes_list = []
         for path in tqdm(paths, desc="Loading PLY files"):
@@ -244,7 +239,9 @@ class BaseCOMAData(metaclass=Singleton):
         return
 
     @abc.abstractmethod
-    def _split_paths(self, ply_paths: list[str]) -> dict[Partitions, list[str]]:
+    def _split_paths(
+        self, ply_paths: list[pathlib.Path]
+    ) -> dict[Partitions, list[pathlib.Path]]:
         """Split paths into train, validation, and test sets."""
 
 
@@ -254,15 +251,26 @@ class COMAData(BaseCOMAData):
     def _get_h5_path(self) -> pathlib.Path:
         return self.coma_dir / "COMA_dataset.h5"
 
-    def _split_paths(self, ply_paths: list[str]) -> dict[Partitions, list[str]]:
-        """Split paths into train, validation, and test sets."""
-        indices = np.arange(len(ply_paths))
-        test_mask = (indices % 100) < 10
-        test_paths = [ply_paths[i] for i in indices[test_mask]]
-        train_raw_paths = [ply_paths[i] for i in indices[~test_mask]]
+    def _split_paths(
+        self, ply_paths: list[pathlib.Path]
+    ) -> dict[Partitions, list[pathlib.Path]]:
+        """Split paths into train, validation, and test sets.
+
+        Replicates the original tensorflow coma sliced split:
+        idx % 100 < 10  -> test
+        otherwise       -> train pool; last 100 of train pool -> val
+        """
+        test_paths: list[pathlib.Path] = []
+        train_pool: list[pathlib.Path] = []
+        for idx, p in enumerate(ply_paths):
+            if idx % 100 < 10:
+                test_paths.append(p)
+            else:
+                train_pool.append(p)
+
         return {
-            Partitions.train: train_raw_paths[:-100],
-            Partitions.val: train_raw_paths[-100:],
+            Partitions.train: train_pool[:-100],
+            Partitions.val: train_pool[-100:],
             Partitions.test: test_paths,
         }
 
@@ -277,7 +285,9 @@ class COMAExtrapolationData(BaseCOMAData):
     def _get_h5_path(self) -> pathlib.Path:
         return self.coma_dir / f"COMA_{self.leave_out}.h5"
 
-    def _split_paths(self, ply_paths: list[str]) -> dict[Partitions, list[str]]:
+    def _split_paths(
+        self, ply_paths: list[pathlib.Path]
+    ) -> dict[Partitions, list[pathlib.Path]]:
         """Split paths into train, validation, and test sets.
 
         A typical PLY path format is:
@@ -286,15 +296,14 @@ class COMAExtrapolationData(BaseCOMAData):
         - parts[-2] is the expression name (e.g., `lips_up`)
         - parts[-3] is the subject identity (e.g., `FaceTalk_170809_00138_TA`)
         """
-        train_paths = []
-        val_paths = []
-        test_paths = []
+        train_paths: list[pathlib.Path] = []
+        val_paths: list[pathlib.Path] = []
+        test_paths: list[pathlib.Path] = []
         val_expression = next(exp.name for exp in Expressions if exp != self.leave_out)
         for p in ply_paths:
-            parts = pathlib.Path(p).parts
-            if len(parts) >= 2 and parts[-2] == self.leave_out:
+            if len(p.parts) >= 2 and p.parts[-2] == self.leave_out:
                 test_paths.append(p)
-            elif len(parts) >= 2 and parts[-2] == val_expression:
+            elif len(p.parts) >= 2 and p.parts[-2] == val_expression:
                 val_paths.append(p)
             else:
                 train_paths.append(p)
