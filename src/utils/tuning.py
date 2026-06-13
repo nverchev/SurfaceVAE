@@ -61,6 +61,12 @@ def get_study_name(tuning_scheme: str, overrides: list[str]) -> str:
         msg = "Variation must be set or a valid git branch must be available."
         raise ValueError(msg)
 
+    if variation is None:
+        variation = get_current_branch()
+        if variation is None:
+            msg = "Variation must be set or a valid git branch must be available."
+            raise ValueError(msg)
+
     override_iter = map(_remove_base_specification, overrides)
     override_iter = map(_remove_configuration_dir, override_iter)
     return "_".join([version, variation, *override_iter, tuning_scheme])
