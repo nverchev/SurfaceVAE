@@ -142,7 +142,7 @@ class BaseCOMAData(metaclass=Singleton):
 
     def _get_sorted_ply_paths(self) -> list[pathlib.Path]:
         """Gather all .ply mesh paths in filesystem order."""
-        return list(self.coma_dir.glob("*/*/*.ply"))
+        return sorted(self.coma_dir.glob("*/*/*.ply"))
 
     def _get_subject_labels(self, paths: list[pathlib.Path]) -> np.ndarray:
         """Get subject labels from paths."""
