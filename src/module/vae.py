@@ -54,9 +54,6 @@ class BaseVAE(nn.Module):
             self.register_buffer(
                 "mean_operator_indices", torch.empty(0, dtype=torch.long)
             )
-            self.register_buffer(
-                "mean_operator_indices", torch.empty(0, dtype=torch.long)
-            )
             self.register_buffer("mean_operator_values", torch.empty(0))
             self.mean_operator_size = torch.Size([0, 0])
 
@@ -66,9 +63,6 @@ class BaseVAE(nn.Module):
             self.register_buffer("mean_operator_adj_values", coalesced_adj.values())
             self.mean_operator_adj_size = coalesced_adj.size()
         else:
-            self.register_buffer(
-                "mean_operator_adj_indices", torch.empty(0, dtype=torch.long)
-            )
             self.register_buffer(
                 "mean_operator_adj_indices", torch.empty(0, dtype=torch.long)
             )
@@ -133,7 +127,11 @@ class BaseVAE(nn.Module):
             sample, inputs.x, operator, operator_adjoint
         ).chunk(2, dim=-1)
         out.z = self.sample(out.mu, out.logvar) if self.training else out.mu
-        decoder_mean_shape = self.normalize_sample(self.mean_shape)
+        if self.use_mean_shape:
+            decoder_mean_shape = self.normalize_sample(self.mean_shape)
+        else:
+            decoder_mean_shape = torch.ones_like(self.mean_shape)
+
         mean_operator = self.normalize_operator(self.mean_operator)
         mean_operator_adjoint = self.normalize_operator(self.mean_operator_adjoint)
         out.recon_mu = self.decode(
@@ -145,7 +143,11 @@ class BaseVAE(nn.Module):
     def generate_sample(self, n_samples: int) -> torch.Tensor:
         out = Output()
         out.z = torch.randn(n_samples, self.dim_latent, device=self.mean_shape.device)
-        decoder_mean_shape = self.normalize_sample(self.mean_shape)
+        if self.use_mean_shape:
+            decoder_mean_shape = self.normalize_sample(self.mean_shape)
+        else:
+            decoder_mean_shape = torch.ones_like(self.mean_shape)
+
         mean_operator = self.normalize_operator(self.mean_operator)
         mean_operator_adjoint = self.normalize_operator(self.mean_operator_adjoint)
         recon_mu = self.decode(
@@ -169,11 +171,6 @@ class BaseVAE(nn.Module):
         if operator is None or operator.numel() == 0:
             return None
 
-        if self.operator_type in (
-            ModelOperators.lap_beltrami,
-            ModelOperators.lap_beltrami_norm,
-        ):
-            return operator * (self.mean_shape_std**2)
         if self.operator_type in (
             ModelOperators.lap_beltrami,
             ModelOperators.lap_beltrami_norm,
