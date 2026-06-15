@@ -1,6 +1,7 @@
 """Torch config utilities."""
 
 from collections.abc import Callable
+import random
 
 import numpy as np
 import torch
@@ -46,6 +47,7 @@ def get_optim_cls(optimizer_name: str) -> type[torch.optim.Optimizer]:
 
 def set_seed(seed: int) -> None:
     """Set seed for reproducibility."""
+    random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
