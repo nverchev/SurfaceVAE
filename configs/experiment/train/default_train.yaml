@@ -3,7 +3,7 @@ defaults:
   - early_stopping: default_early_stopping
   - _self_
 
-batch_size: 64
+batch_size: 32
 n_epochs: 1000
 loss_type: elbo
 _n_subprocesses: ${user.n_subprocesses}
