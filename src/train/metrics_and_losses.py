@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from typing import Callable, Self, override
+
 import torch
 
 from drytorch.lib import aggregators
@@ -15,8 +16,6 @@ from drytorch.lib.objectives import (
 )
 from src.config.experiment import Experiment
 from src.data.structures import Output, Target
-
-LOG_2PI = math.log(2 * math.pi)
 
 
 class ReconstructionErrorCompiler(
@@ -95,32 +94,24 @@ class ReconstructionErrorMetric(Objective[Output, Target]):
         return self._aggregator
 
 
-def log_normal_diag(
-    z: torch.Tensor, mu: torch.Tensor, logvar: torch.Tensor, sum_dim: int = 1
-) -> torch.Tensor:
-    """Compute the log probability of diagonal Gaussian."""
-    return (-0.5 * (LOG_2PI + logvar + (z - mu).pow(2) / logvar.exp())).sum(sum_dim)
-
-
 def get_nll(normalize: Callable[[torch.Tensor], torch.Tensor]) -> Loss[Output, Target]:
-    """Get the reconstruction log-likelihood using a normalization callable."""
+    """Get the reconstruction NLL using a spherical Laplace decoder.
+
+    The spherical Laplace distribution in 3D has density:
+        p(x | mu, b) ∝ exp(-||x - mu||_2 / b)
+    so NLL = 3*log(b) + (1/b) * ||x - mu||_2, summed over vertices.
+    This is equivalent (up to constants) to MAE on per-vertex Euclidean norms,
+    matching the evaluation metric.
+    """
 
     def _nll(outputs: Output, targets: Target) -> torch.Tensor:
-        targets_x_normalized = normalize(targets.x)
-        x_flat = targets_x_normalized.view(targets.x.size(0), -1)
-        recon_mu_flat = outputs.recon_mu.view(targets.x.size(0), -1)
-        recon_logvar = outputs.recon_logvar.clamp(-10.0, -1.0)
-        if recon_logvar.ndim > 1:
-            if recon_logvar.size(1) == 1:
-                recon_logvar = recon_logvar.expand(-1, 3)
-
-            recon_logvar_flat = (
-                recon_logvar.flatten().unsqueeze(0).expand_as(recon_mu_flat)
-            )
-        else:
-            recon_logvar_flat = recon_logvar.expand_as(recon_mu_flat)
-
-        return -log_normal_diag(x_flat, recon_mu_flat, recon_logvar_flat)
+        targets_normalized = normalize(targets.x)
+        diff = targets_normalized - outputs.recon_mu
+        per_vertex_norm = torch.norm(diff, dim=-1)
+        log_b = outputs.recon_logvar.clamp(-10.0, -1.0).squeeze(-1)
+        b = log_b.exp()
+        per_vertex_nll = 3.0 * log_b + per_vertex_norm / b
+        return per_vertex_nll.sum(dim=-1)
 
     return Loss(_nll, name="NLL")
 
@@ -136,13 +127,13 @@ def get_kld() -> LossBase[Output, Target]:
     return Loss(_kld, name="KLD")
 
 
-def get_pointwise_variance() -> Metric[Output, Target]:
-    """Metric for average recon_var across batch."""
+def get_pointwise_scale() -> Metric[Output, Target]:
+    """Metric for average Laplace scale b = exp(recon_logvar) across vertices."""
 
-    def _pointwise_variance(outputs: Output, _: Target) -> torch.Tensor:
+    def _pointwise_scale(outputs: Output, _: Target) -> torch.Tensor:
         return outputs.recon_logvar.exp().mean()
 
-    return Metric(_pointwise_variance, name="PVar")
+    return Metric(_pointwise_scale, name="PScale")
 
 
 def get_annealing() -> Loss[Output, Target]:
@@ -176,7 +167,7 @@ def get_vae_loss(
     else:
         loss = nll + kld
 
-    loss.watch(get_pointwise_variance())
+    loss.watch(get_pointwise_scale())
     return loss
 
 
