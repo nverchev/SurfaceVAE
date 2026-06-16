@@ -140,6 +140,10 @@ class COMADatasetSplit(AbstractSplit):
             operator_adjoint = None
 
         inputs = Input(x=sample, operator=operator, operator_adjoint=operator_adjoint)
-        label = torch.tensor(self.labels[index]) if self.labels is not None else None
+        label = (
+            torch.tensor(self.labels[index])
+            if self.labels is not None
+            else torch.empty(0)
+        )
         targets = Target(x=sample, label=label)
         return inputs, targets

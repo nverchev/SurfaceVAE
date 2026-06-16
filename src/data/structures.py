@@ -29,7 +29,7 @@ class Target(NamedTuple):
     """
 
     x: torch.Tensor
-    label: torch.Tensor | None = None
+    label: torch.Tensor = torch.empty(0)
 
 
 @dataclasses.dataclass(init=False, slots=True)
