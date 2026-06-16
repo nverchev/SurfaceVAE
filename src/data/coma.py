@@ -51,6 +51,11 @@ class Singleton(abc.ABCMeta):
 
         return cls._instances[cls]
 
+    @classmethod
+    @abc.abstractmethod
+    def get_faces(cls) -> np.ndarray:
+        """Get the faces of the dataset."""
+
 
 class BaseCOMAData(metaclass=Singleton):
     """Base class to load raw COMA data, compute partitions, and manage operator caching."""
@@ -64,8 +69,25 @@ class BaseCOMAData(metaclass=Singleton):
         self.operator_type = cfg.model.operator
         self._setup_attributes(cfg)
         self.h5_path = self._get_h5_path()
-        self.vertices, self.faces, _, _ = self._load_split(Partitions.train)
+        self.class_names = sorted([d.name for d in self.coma_dir.glob("FaceTalk_*")])
+        if not self.h5_path.exists():
+            self._preprocess_shapes_and_labels()
+
+        with h5py.File(self.h5_path, "r") as f:
+            self.faces = get_h5_dataset(f, H5Keys.FACES)[:]
+
         return
+
+    @classmethod
+    def get_faces(cls) -> np.ndarray:
+        cfg = Experiment.get_config()
+        coma_dir = cfg.user.path.data_dir / cls.folder
+        ply_paths = sorted(coma_dir.glob("*/*/*.ply"))
+        if not ply_paths:
+            raise FileNotFoundError(f"No PLY files found in {coma_dir}")
+
+        _, faces = read_ply(ply_paths[0])
+        return faces
 
     def _setup_attributes(self, cfg: Any) -> None:
         return
@@ -76,11 +98,14 @@ class BaseCOMAData(metaclass=Singleton):
 
     def get_split(self, partition: Partitions) -> COMADatasetSplit:
         if partition == Partitions.train_val:
-            train_vertices, _, train_op, train_op_adj = self._load_split(
+            train_vertices, _, train_op, train_op_adj, train_lbls = self._load_split(
                 Partitions.train,
             )
-            val_vertices, _, val_op, val_op_adj = self._load_split(Partitions.val)
+            val_vertices, _, val_op, val_op_adj, val_lbls = self._load_split(
+                Partitions.val
+            )
             vertices = np.concatenate([train_vertices, val_vertices], axis=0)
+            labels = np.concatenate([train_lbls, val_lbls], axis=0)
             if train_op is not None and val_op is not None:
                 operator = train_op + val_op
             else:
@@ -92,13 +117,17 @@ class BaseCOMAData(metaclass=Singleton):
                 adjoint_operator = None
 
         else:
-            vertices, _, operator, adjoint_operator = self._load_split(partition)
+            vertices, _, operator, adjoint_operator, labels = self._load_split(
+                partition
+            )
 
         return COMADatasetSplit(
             shapes=vertices,
             faces=self.faces,
             operator=operator,
             adjoint_operator=adjoint_operator,
+            labels=labels,
+            class_names=self.class_names,
         )
 
     def _compute_constant_operator(self, faces: np.ndarray, f: h5py.File) -> None:
@@ -167,11 +196,9 @@ class BaseCOMAData(metaclass=Singleton):
         np.ndarray,
         list[torch.Tensor] | None,
         list[torch.Tensor] | None,
+        np.ndarray,
     ]:
         """Load vertices, faces, operators, and adjoint operators from the HDF5 archive."""
-        if not self.h5_path.exists():
-            self._preprocess_shapes_and_labels()
-
         operator_is_constant = self.operator_type in (
             ModelOperators.lap_graph_norm,
             ModelOperators.dirac_graph_norm,
@@ -198,8 +225,9 @@ class BaseCOMAData(metaclass=Singleton):
         with h5py.File(self.h5_path, "r") as f:
             faces = get_h5_dataset(f, H5Keys.FACES)[:]
             vertices = get_h5_dataset(f, f"{partition.name}/{H5Keys.VERTICES}")[:]
+            labels = get_h5_dataset(f, f"{partition.name}/{H5Keys.LABELS}")[:]
             if self.operator_type == ModelOperators.none:
-                return vertices, faces, None, None
+                return vertices, faces, None, None, labels
 
             if should_compute_on_the_fly:
                 operator = None
@@ -221,7 +249,7 @@ class BaseCOMAData(metaclass=Singleton):
             else:
                 adjoint_operator = None
 
-        return vertices, faces, operator, adjoint_operator
+        return vertices, faces, operator, adjoint_operator, labels
 
     def _preprocess_shapes_and_labels(self) -> None:
         ply_paths = self._get_sorted_ply_paths()

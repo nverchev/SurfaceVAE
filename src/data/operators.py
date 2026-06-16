@@ -345,6 +345,24 @@ def compute_dirac(
 
 
 # ==============================================================================
+# Dummy Operator
+# ==============================================================================
+
+
+def buid_dummy_sparse_tensor(
+    shape: tuple[int, int] | None, nnz: int
+) -> sparse.coo_matrix | None:
+    if shape is not None and nnz > 0:
+        idx = np.arange(nnz, dtype=np.int64)
+        rows = idx // shape[1]
+        cols = idx % shape[1]
+        data = np.zeros(nnz, dtype=np.float32)
+        return sparse.coo_matrix((data, (rows, cols)), shape=shape)
+
+    return None
+
+
+# ==============================================================================
 # Operator Builders
 # ==============================================================================
 
@@ -425,3 +443,42 @@ def build_operator(
         return build_dirac_norm(vertices, faces)
 
     raise ValueError("Unknown operator")
+
+
+def get_dummy_operator(
+    faces: np.ndarray, n_vertices: int, operator_type: ModelOperators
+) -> tuple[sparse.coo_matrix | None, sparse.coo_matrix | None]:
+    if operator_type == ModelOperators.none:
+        return None, None
+
+    if operator_type in (
+        ModelOperators.lap_graph_norm,
+        ModelOperators.lap_beltrami,
+        ModelOperators.lap_beltrami_norm,
+    ):
+        row, col = compute_directed_edges(faces)
+        edges = np.unique(np.stack([row, col], axis=1), axis=0)
+        E = len(edges)
+        nnz = E + n_vertices
+        op_shape = (n_vertices, n_vertices)
+        op_nnz = nnz
+        op_adj_shape = None
+        op_adj_nnz = 0
+
+    elif operator_type in (
+        ModelOperators.dirac_graph_norm,
+        ModelOperators.dirac_norm,
+    ):
+        n_faces = faces.shape[0]
+        nnz = 48 * n_faces
+        op_shape = (4 * n_faces, 4 * n_vertices)
+        op_nnz = nnz
+        op_adj_shape = (4 * n_vertices, 4 * n_faces)
+        op_adj_nnz = nnz
+
+    else:
+        raise ValueError("Unknown operator")
+
+    mean_operator = buid_dummy_sparse_tensor(op_shape, op_nnz)
+    mean_operator_adjoint = buid_dummy_sparse_tensor(op_adj_shape, op_adj_nnz)
+    return mean_operator, mean_operator_adjoint

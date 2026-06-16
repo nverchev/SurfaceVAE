@@ -47,6 +47,10 @@ class AbstractSplit(Dataset[tuple[Input, Target]], metaclass=ABCMeta):
     @abstractmethod
     def mean_operator_adjoint(self) -> torch.Tensor | None: ...
 
+    @property
+    @abstractmethod
+    def faces(self) -> np.ndarray: ...
+
 
 class COMADatasetSplit(AbstractSplit):
     """COMADataset for a specific partition."""
@@ -57,6 +61,8 @@ class COMADatasetSplit(AbstractSplit):
         faces: np.ndarray,
         operator: Sequence[torch.Tensor] | None,
         adjoint_operator: Sequence[torch.Tensor] | None,
+        labels: np.ndarray | None = None,
+        class_names: list[str] | None = None,
     ) -> None:
         super().__init__()
         cfg = Experiment.get_config()
@@ -69,7 +75,13 @@ class COMADatasetSplit(AbstractSplit):
         )
         self._operators = operator
         self._adjoint_operators = adjoint_operator
+        self.labels = labels
+        self.class_names = class_names or []
         return
+
+    @property
+    def faces(self) -> np.ndarray:
+        return self._faces
 
     @property
     def mean_shape(self) -> torch.Tensor:
@@ -128,5 +140,6 @@ class COMADatasetSplit(AbstractSplit):
             operator_adjoint = None
 
         inputs = Input(x=sample, operator=operator, operator_adjoint=operator_adjoint)
-        targets = Target(x=sample)
+        label = torch.tensor(self.labels[index]) if self.labels is not None else None
+        targets = Target(x=sample, label=label)
         return inputs, targets

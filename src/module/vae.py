@@ -220,7 +220,7 @@ def compute_operators_on_the_fly(
 
 def get_vae_module(
     mean_shape: torch.Tensor,
-    mean_operator: torch.Tensor,
+    mean_operator: torch.Tensor | None,
     mean_operator_adjoint: torch.Tensor | None = None,
 ) -> BaseVAE:
     """Get VAE module using the provided mean shape and operators."""

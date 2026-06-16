@@ -241,6 +241,28 @@ class HydraSettings:
 
 
 @dataclass
+class PlottingOptions:
+    """Options for plotting and visualization."""
+
+    interactive: bool
+    sample_indices: list[PositiveInt]
+    use_train: bool = False
+    interpolation_step_factor: float = 0.3
+    interpolation_steps: PositiveInt = 4
+
+
+@dataclass
+class GenerationOptions:
+    """Options for the generation of meshes."""
+
+    batch_size: StrictlyPositiveInt
+    bias_dim: PositiveInt
+    bias_value: float
+    tour_samples: StrictlyPositiveInt = 100
+    tour_radius: float = 1.0
+
+
+@dataclass
 class UserSettings:
     """User-specific options and preferences.
 
@@ -253,6 +275,8 @@ class UserSettings:
         on_the_fly (bool): Compute operators on-the-fly per batch instead of loading from cache
         load_checkpoint (int): The checkpoint epoch to load (0 starts from scratch)
         n_subprocesses (PositiveInt): Number of subprocesses for distributed training (0 for no parallelism)
+        plot (PlottingOptions): The plotting options
+        generate (GenerationOptions): The generation options
     """
 
     cpu: bool
@@ -260,6 +284,8 @@ class UserSettings:
     trackers: TrackerList
     seed: int | None
     checkpoint_every: PositiveInt
+    plot: PlottingOptions
+    generate: GenerationOptions
     on_the_fly: bool = False
     load_checkpoint: int = 0
     n_subprocesses: PositiveInt = 0

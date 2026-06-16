@@ -25,9 +25,11 @@ class Target(NamedTuple):
 
     Attributes:
         x: the target vertices (batch_size, n_vertices, 3).
+        label: optional class/expression label.
     """
 
     x: torch.Tensor
+    label: torch.Tensor | None = None
 
 
 @dataclasses.dataclass(init=False, slots=True)
