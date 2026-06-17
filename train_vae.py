@@ -4,7 +4,7 @@ import logging
 import sys
 from typing import TYPE_CHECKING, Any
 
-from drytorch import Model, Test, Trainer
+from drytorch import Test, Trainer
 
 from drytorch.lib import objectives
 
@@ -13,6 +13,7 @@ from src.config import AllConfig, Experiment, get_trackers, hydra_main
 from src.data import get_splits
 from src.module import get_vae_module
 from src.train import (
+    ModelEpoch,
     EMAModelEpoch,
     get_learning_schema,
     COMADataLoader,
@@ -64,7 +65,7 @@ def train_vae(trial: Trial | None = None) -> None:
             vae, name=f"VAE_{cfg.model.operator}", device=cfg.user.device
         )
     else:
-        model = Model(vae, device=cfg.user.device)
+        model = ModelEpoch(vae, device=cfg.user.device)
 
     loss = get_vae_loss(normalize=vae.normalize_sample)
     metrics = get_reconstruction_metrics(denormalize=vae.denormalize_sample)
