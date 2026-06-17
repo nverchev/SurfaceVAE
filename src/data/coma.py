@@ -241,7 +241,10 @@ class BaseCOMAData(metaclass=Singleton):
                 adjoint_operator = None
             elif self.operator_type == ModelOperators.dirac_graph_norm:
                 adjoint_operator = [op_const.T] * vertices.shape[0]
-            elif self.operator_type == ModelOperators.dirac_norm:
+            elif self.operator_type in (
+                ModelOperators.dirac_norm,
+                ModelOperators.dirac,
+            ):
                 adj_name = f"{partition.name}/{H5Keys.OPERATORS_ADJOINT}/{self.operator_type.name}"
                 adjoint_operator = load_sparse_matrices_as_pytorch(
                     get_h5_group(f, adj_name)

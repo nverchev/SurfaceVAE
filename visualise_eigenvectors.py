@@ -162,6 +162,7 @@ def visualise_eigenvectors() -> None:
                 )
                 eigenvectors = D_inv_sqrt_mat @ eigenvectors_sym
             elif operator_type in (
+                ModelOperators.dirac,
                 ModelOperators.dirac_norm,
                 ModelOperators.dirac_graph_norm,
             ):
@@ -199,6 +200,7 @@ def visualise_eigenvectors() -> None:
             for ev_idx in range(valid_vecs.shape[1]):
                 ev = valid_vecs[:, ev_idx]
                 if operator_type in (
+                    ModelOperators.dirac,
                     ModelOperators.dirac_norm,
                     ModelOperators.dirac_graph_norm,
                 ):

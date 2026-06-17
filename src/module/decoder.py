@@ -151,7 +151,11 @@ def get_decoder() -> BaseDecoder:
     if operator_type == ModelOperators.none:
         return PointNetDecoder()
 
-    if operator_type in (ModelOperators.dirac_norm, ModelOperators.dirac_graph_norm):
+    if operator_type in (
+        ModelOperators.dirac,
+        ModelOperators.dirac_norm,
+        ModelOperators.dirac_graph_norm,
+    ):
         return DirDecoder()
 
     return LapDecoder()

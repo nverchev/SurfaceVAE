@@ -162,6 +162,7 @@ def get_encoder() -> BaseEncoder:
         return PointNetEncoder()
 
     if cfg.model.operator in (
+        ModelOperators.dirac,
         ModelOperators.dirac_norm,
         ModelOperators.dirac_graph_norm,
     ):

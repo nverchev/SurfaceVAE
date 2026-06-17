@@ -182,7 +182,7 @@ class BaseVAE(nn.Module):
         ):
             return operator * (self.mean_shape_std**2)
 
-        if self.operator_type == ModelOperators.dirac_norm:
+        if self.operator_type in (ModelOperators.dirac, ModelOperators.dirac_norm):
             return operator * self.mean_shape_std
 
         return operator

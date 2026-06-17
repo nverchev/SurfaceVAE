@@ -306,7 +306,10 @@ def compute_graph_dirac(F: np.ndarray, n_vertices: int) -> sparse.coo_matrix:
 
 
 def compute_dirac(
-    V: np.ndarray, F: np.ndarray, face_areas: np.ndarray
+    V: np.ndarray,
+    F: np.ndarray,
+    face_areas: np.ndarray,
+    normalize: bool = True,
 ) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
     """Compute the continuous Dirac operators (Di, DiA)."""
     n_vertices = V.shape[0]
@@ -319,10 +322,18 @@ def compute_dirac(
     v2f_data = []
     for corner, q_mats in enumerate(quaternion_mats):
         vertex_corner = F[:, corner]
-        data_f2v = q_mats / (2 * face_areas[:, None, None])
+        if normalize:
+            data_f2v = q_mats / (2 * face_areas[:, None, None])
+        else:
+            data_f2v = q_mats
+
         f2v_data.append(data_f2v.ravel())
         rows_v2f, cols_v2f = compute_block_indices(vertex_corner, np.arange(n_faces))
-        data_v2f = -q_mats / (2 * vertex_dual_areas[vertex_corner, None, None])
+        if normalize:
+            data_v2f = -q_mats / (2 * vertex_dual_areas[vertex_corner, None, None])
+        else:
+            data_v2f = -q_mats
+
         v2f_rows.append(rows_v2f)
         v2f_cols.append(cols_v2f)
         v2f_data.append(data_v2f.ravel())
@@ -411,7 +422,16 @@ def build_dirac_norm(
 ) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
     """Build the continuous Dirac operators (Di, DiA)."""
     _, face_areas = compute_mesh_geometry(V, F)
-    Di, DiA = compute_dirac(V, F, face_areas)
+    Di, DiA = compute_dirac(V, F, face_areas, normalize=True)
+    return Di, DiA
+
+
+def build_dirac(
+    V: np.ndarray, F: np.ndarray
+) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
+    """Build the continuous Dirac operators without area-normalization (Di, DiA)."""
+    _, face_areas = compute_mesh_geometry(V, F)
+    Di, DiA = compute_dirac(V, F, face_areas, normalize=False)
     return Di, DiA
 
 
@@ -442,6 +462,9 @@ def build_operator(
     if operator == ModelOperators.dirac_norm:
         return build_dirac_norm(vertices, faces)
 
+    if operator == ModelOperators.dirac:
+        return build_dirac(vertices, faces)
+
     raise ValueError("Unknown operator")
 
 
@@ -468,6 +491,7 @@ def get_dummy_operator(
     elif operator_type in (
         ModelOperators.dirac_graph_norm,
         ModelOperators.dirac_norm,
+        ModelOperators.dirac,
     ):
         n_faces = faces.shape[0]
         nnz = 48 * n_faces

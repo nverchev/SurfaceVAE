@@ -45,6 +45,9 @@ class ModelOperators(enum.StrEnum):
     dirac_norm = enum.auto()
     """Continuous coordinate-dependent area-normalized Dirac operator (D)."""
 
+    dirac = enum.auto()
+    """Continuous coordinate-dependent unnormalized Dirac operator (D)."""
+
     dirac_graph_norm = enum.auto()
     """Combinatorial/topological unweighted normalized graph Dirac operator (D_tilde)."""
 
