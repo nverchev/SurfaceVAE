@@ -282,23 +282,24 @@ class COMAData(BaseCOMAData):
     def _split_paths(
         self, ply_paths: list[pathlib.Path]
     ) -> dict[Partitions, list[pathlib.Path]]:
-        """Split paths into train, validation, and test sets.
-
-        Replicates the original tensorflow coma sliced split:
-        idx % 100 < 10  -> test
-        otherwise       -> train pool; last 100 of train pool -> val
-        """
+        """Split paths into train, validation, and test sets."""
+        train_paths: list[pathlib.Path] = []
+        val_paths: list[pathlib.Path] = []
         test_paths: list[pathlib.Path] = []
-        train_pool: list[pathlib.Path] = []
         for idx, p in enumerate(ply_paths):
-            if idx % 100 < 10:
+            mod = idx % 100
+            if mod < 10:
                 test_paths.append(p)
+
+            elif mod < 20:
+                val_paths.append(p)
+
             else:
-                train_pool.append(p)
+                train_paths.append(p)
 
         return {
-            Partitions.train: train_pool[:-100],
-            Partitions.val: train_pool[-100:],
+            Partitions.train: train_paths,
+            Partitions.val: val_paths,
             Partitions.test: test_paths,
         }
 
