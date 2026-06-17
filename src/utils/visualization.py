@@ -89,17 +89,29 @@ def render_mesh(
         mesh_pv = pv.PolyData(vertices[:, :3], pyvista_faces)
         if i == 0 and scalars is not None:
             mesh_pv.point_data["scalars"] = scalars
-            plotter.add_mesh(
-                mesh_pv,
-                scalars="scalars",
-                cmap=cmap,
-                clim=clim,
-                show_scalar_bar=show_scalar_bar,
-                smooth_shading=True,
-                show_edges=True,
-                edge_color="black",
-                line_width=1,
-            )
+            is_rgb = scalars.ndim == 2 and scalars.shape[1] == 3
+            if is_rgb:
+                plotter.add_mesh(
+                    mesh_pv,
+                    scalars="scalars",
+                    rgb=True,
+                    smooth_shading=True,
+                    show_edges=True,
+                    edge_color="black",
+                    line_width=1,
+                )
+            else:
+                plotter.add_mesh(
+                    mesh_pv,
+                    scalars="scalars",
+                    cmap=cmap,
+                    clim=clim,
+                    show_scalar_bar=show_scalar_bar,
+                    smooth_shading=True,
+                    show_edges=True,
+                    edge_color="black",
+                    line_width=1,
+                )
         else:
             plotter.add_mesh(
                 mesh_pv,

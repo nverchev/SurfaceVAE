@@ -33,3 +33,4 @@ plot:
   use_train: false
   interpolation_step_factor: 0.3
   interpolation_steps: 4
+  num_eigenvectors: 5

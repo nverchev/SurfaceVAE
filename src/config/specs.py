@@ -249,6 +249,7 @@ class PlottingOptions:
     use_train: bool = False
     interpolation_step_factor: float = 0.3
     interpolation_steps: PositiveInt = 4
+    num_eigenvectors: PositiveInt = 5
 
 
 @dataclass
