@@ -4,9 +4,10 @@ import logging
 import sys
 from typing import TYPE_CHECKING, Any
 
-from drytorch import Test, Trainer
+from drytorch import Model, Test, Trainer
 
 from drytorch.lib import objectives
+
 
 from src.config import AllConfig, Experiment, get_trackers, hydra_main
 from src.data import get_splits
@@ -59,8 +60,12 @@ def train_vae(trial: Trial | None = None) -> None:
         n_params = sum(p.numel() for p in vae.parameters())
         trainable_params = sum(p.numel() for p in vae.parameters() if p.requires_grad)
         logger.info(f"Model parameters: {n_params:,} (trainable: {trainable_params:,})")
+        model = EMAModelEpoch(
+            vae, name=f"VAE_{cfg.model.operator}", device=cfg.user.device
+        )
+    else:
+        model = Model(vae, device=cfg.user.device)
 
-    model = EMAModelEpoch(vae, name=f"VAE_{cfg.model.operator}", device=cfg.user.device)
     loss = get_vae_loss(normalize=vae.normalize_sample)
     metrics = get_reconstruction_metrics(denormalize=vae.denormalize_sample)
     loss_with_metrics = objectives.JoinLossMetrics(loss, metrics)
