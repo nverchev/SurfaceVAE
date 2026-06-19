@@ -37,19 +37,19 @@ class ModelOperators(enum.StrEnum):
     """Stiffness matrix from cotangent-weighted Laplace-Beltrami operator."""
 
     lap_beltrami_norm = enum.auto()
-    """Area-normalized cotangent-weighted Laplace-Beltrami operator (LBO)."""
+    """Area-normalized cotangent-weighted Laplace-Beltrami operator."""
 
     lap_graph_norm = enum.auto()
-    """Symmetric normalized graph Laplacian (unweighted, purely topological, computed from fixed connectivity)."""
-
-    dirac_norm = enum.auto()
-    """Continuous coordinate-dependent area-normalized Dirac operator (D)."""
+    """Symmetric normalized graph Laplacian."""
 
     dirac = enum.auto()
-    """Continuous coordinate-dependent unnormalized Dirac operator (D)."""
+    """Continuous coordinate-dependent area-normalized Dirac operator."""
+
+    dirac_norm = enum.auto()
+    """Continuous coordinate-dependent right-normalized Dirac operator."""
 
     dirac_graph_norm = enum.auto()
-    """Combinatorial/topological unweighted normalized graph Dirac operator (D_tilde)."""
+    """Combinatorial/topological unweighted normalized graph Dirac operator."""
 
 
 class LossTypes(enum.StrEnum):

@@ -408,30 +408,43 @@ def build_laplace_beltrami_normalized(
     return sparse.coo_matrix((normalized_data, (L.row, L.col)), shape=L.shape)
 
 
-def build_dirac_graph_norm(faces: np.ndarray, n_vertices: int) -> sparse.coo_matrix:
-    """Build the normalised combinatorial graph Dirac operator (D_tilde = D_comb @ D_deg^{-1/2})."""
+def build_dirac_graph_norm(
+    faces: np.ndarray, n_vertices: int
+) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
+    """Build the normalised combinatorial graph Dirac operator (D_tilde = D_comb @ D_deg^{-1/2}) and its adjoint."""
     adjacency_matrix = compute_adjacency_matrix(faces, n_vertices)
     degree_inv_sqrt_matrix = compute_degree_inv_sqrt_matrix(adjacency_matrix)
     Di_comb = compute_graph_dirac(faces, n_vertices)
     D_deg_block = sparse.kron(degree_inv_sqrt_matrix, sparse.eye(4))
-    return cast(sparse.coo_matrix, Di_comb @ D_deg_block).tocoo()
+    Di_graph_norm = cast(sparse.coo_matrix, Di_comb @ D_deg_block).tocoo()
+    DiA_graph_norm = cast(sparse.coo_matrix, D_deg_block @ Di_comb.T).tocoo()
+    return Di_graph_norm, DiA_graph_norm
 
 
 def build_dirac_norm(
     V: np.ndarray, F: np.ndarray
 ) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
-    """Build the continuous Dirac operators (Di, DiA)."""
+    """Build the continuous Dirac operators normalized as in the slides (Di, DiA)."""
+    n_vertices = V.shape[0]
     _, face_areas = compute_mesh_geometry(V, F)
     Di, DiA = compute_dirac(V, F, face_areas, normalize=True)
-    return Di, DiA
+    vertex_dual_areas = compute_vertex_dual_areas(F, face_areas, n_vertices)
+    inv_sqrt_areas = np.zeros_like(vertex_dual_areas)
+    mask = vertex_dual_areas > 0
+    inv_sqrt_areas[mask] = 1.0 / np.sqrt(vertex_dual_areas[mask])
+    inv_sqrt_diag = sparse.diags(inv_sqrt_areas, 0)
+    inv_sqrt_block = sparse.kron(inv_sqrt_diag, sparse.eye(4))
+    Di_norm = cast(sparse.coo_matrix, Di @ inv_sqrt_block).tocoo()
+    DiA_norm = cast(sparse.coo_matrix, inv_sqrt_block @ DiA).tocoo()
+    return Di_norm, DiA_norm
 
 
 def build_dirac(
     V: np.ndarray, F: np.ndarray
 ) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
-    """Build the continuous Dirac operators without area-normalization (Di, DiA)."""
+    """Build the continuous Dirac operators with area-normalization (Di, DiA)."""
     _, face_areas = compute_mesh_geometry(V, F)
-    Di, DiA = compute_dirac(V, F, face_areas, normalize=False)
+    Di, DiA = compute_dirac(V, F, face_areas, normalize=True)
     return Di, DiA
 
 
@@ -450,8 +463,7 @@ def build_operator(
         return build_normalized_graph_laplacian(faces, vertices.shape[0]), None
 
     if operator == ModelOperators.dirac_graph_norm:
-        op = build_dirac_graph_norm(faces, vertices.shape[0])
-        return op, op.T.tocoo()
+        return build_dirac_graph_norm(faces, vertices.shape[0])
 
     if operator == ModelOperators.lap_beltrami:
         return build_laplace_beltrami(vertices, faces), None
