@@ -1,5 +1,7 @@
 """Decoder module containing BaseDecoder, LapDecoder, DirDecoder, and get_decoder."""
 
+from abc import ABCMeta, abstractmethod
+
 import torch
 import torch.nn as nn
 
@@ -8,7 +10,7 @@ from src.module.layers import LinearLayer, DirResNet, LapResNet, PointwiseResNet
 from src.data import N_FACES
 
 
-class BaseDecoder(nn.Module):
+class BaseDecoder(nn.Module, metaclass=ABCMeta):
     """Base Decoder abstract class."""
 
     def __init__(self) -> None:
@@ -66,6 +68,7 @@ class BaseDecoder(nn.Module):
         mu = self.fc_mu(x)
         return mu
 
+    @abstractmethod
     def forward(
         self,
         inputs: torch.Tensor,
@@ -73,7 +76,7 @@ class BaseDecoder(nn.Module):
         operator_adjoint: torch.Tensor | None,
         mean_shape: torch.Tensor,
     ) -> torch.Tensor:
-        raise NotImplementedError()
+        """Forward pass for the decoder."""
 
 
 class LapDecoder(BaseDecoder):

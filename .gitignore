@@ -13,3 +13,5 @@ uv.lock
 reference/
 adjacency.npy
 faces.npy
+presentation/
+scratch/

@@ -1,5 +1,7 @@
 """Encoder module containing BaseEncoder, LapEncoder, DirEncoder, and get_encoder."""
 
+from abc import ABCMeta, abstractmethod
+
 from typing import override
 
 import torch
@@ -16,7 +18,7 @@ from src.module.layers import (
 from src.data import N_FACES
 
 
-class BaseEncoder(nn.Module):
+class BaseEncoder(nn.Module, metaclass=ABCMeta):
     """Base Encoder abstract class."""
 
     def __init__(self) -> None:
@@ -41,6 +43,7 @@ class BaseEncoder(nn.Module):
         )
         return
 
+    @abstractmethod
     def forward(
         self,
         inputs: torch.Tensor,
@@ -48,9 +51,11 @@ class BaseEncoder(nn.Module):
         operator: torch.Tensor | None,
         operator_adjoint: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Forward pass for the encoder."""
         raise NotImplementedError()
 
     def _forward_dense(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass for the dense layers."""
         x = global_average(x).squeeze(1)
         if x.dim() == 1:
             x = x.unsqueeze(0)
