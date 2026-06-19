@@ -1,6 +1,6 @@
 defaults:
   - all_config
-  - model: lap_vae
+  - model: vae
   - user: user_settings
   - data: default_data
   - train: default_train

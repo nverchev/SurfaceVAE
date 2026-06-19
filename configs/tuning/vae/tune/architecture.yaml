@@ -21,3 +21,10 @@ params:
     suggest: suggest_categorical
     settings:
       choices: [64, 128, 256]
+
+  model.batch_norm_momentum:
+    suggest: suggest_float
+    settings:
+      low: 0.001
+      high: 0.2
+      log: true

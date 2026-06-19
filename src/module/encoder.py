@@ -26,11 +26,18 @@ class BaseEncoder(nn.Module):
         self.act = cfg.model.activation_cls()
         self.n_features = cfg.model.n_features
         self.dim_latent = cfg.model.dim_latent
-        self.conv1 = LinearLayer(3, self.n_features, use_batch_norm=False)
+        self.momentum = cfg.model.batch_norm_momentum
+        self.conv1 = LinearLayer(
+            3,
+            self.n_features,
+            use_batch_norm=False,
+            batch_norm_momentum=self.momentum,
+        )
         self.infer_latent = LinearLayer(
             self.n_features,
             2 * self.dim_latent,
             truncated_init=True,
+            batch_norm_momentum=self.momentum,
         )
         return
 
@@ -60,7 +67,11 @@ class LapEncoder(BaseEncoder):
         cfg = Experiment.get_config()
         self.layers = nn.ModuleList(
             [
-                LapResNet(cfg.model.n_features, act=self.act)
+                LapResNet(
+                    cfg.model.n_features,
+                    act=self.act,
+                    batch_norm_momentum=self.momentum,
+                )
                 for _ in range(cfg.model.n_blocks_encoder)
             ]
         )
@@ -96,7 +107,11 @@ class DirEncoder(BaseEncoder):
         self.n_faces = n_faces
         self.layers = nn.ModuleList(
             [
-                DirResNet(cfg.model.n_features, act=self.act)
+                DirResNet(
+                    cfg.model.n_features,
+                    act=self.act,
+                    batch_norm_momentum=self.momentum,
+                )
                 for _ in range(cfg.model.n_blocks_encoder)
             ]
         )
@@ -134,7 +149,11 @@ class PointNetEncoder(BaseEncoder):
         cfg = Experiment.get_config()
         self.layers = nn.ModuleList(
             [
-                PointwiseResNet(cfg.model.n_features, act=self.act)
+                PointwiseResNet(
+                    cfg.model.n_features,
+                    act=self.act,
+                    batch_norm_momentum=self.momentum,
+                )
                 for _ in range(2 * cfg.model.n_blocks_encoder)
             ]
         )

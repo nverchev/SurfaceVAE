@@ -73,6 +73,7 @@ class ModelConfig:
         activation (str): The name of the PyTorch activation class (e.g., 'ELU')
         n_dense (StrictlyPositiveInt): The hidden number of features of the decoder for z
         use_mean_shape (bool): Whether to use the mean shape at the start of the decoder
+        batch_norm_momentum (PositiveFloat | None): The momentum parameter for Batch Normalization layers
     """
 
     operator: ModelOperators
@@ -83,6 +84,7 @@ class ModelConfig:
     activation: str = "ELU"
     n_dense: StrictlyPositiveInt = 64
     use_mean_shape: bool = True
+    batch_norm_momentum: PositiveFloat | None = 0.1
 
     def __post_init__(self) -> None:
         """Resolve activation class from name."""

@@ -26,6 +26,7 @@ class LinearLayer(nn.Module):
         use_batch_norm: bool = False,
         act: nn.Module | None = None,
         truncated_init: bool = False,
+        batch_norm_momentum: float | None = 0.1,
     ) -> None:
         super().__init__()
         self.n_inputs = n_inputs
@@ -36,7 +37,11 @@ class LinearLayer(nn.Module):
         self.fc = nn.Linear(n_inputs, n_outputs, bias=True)
         self._init_weights()
         if self.use_batch_norm:
-            self.bn = nn.BatchNorm1d(n_inputs, track_running_stats=True)
+            self.bn = nn.BatchNorm1d(
+                n_inputs,
+                momentum=batch_norm_momentum,
+                track_running_stats=True,
+            )
 
         if DEBUG_MODE:
             warnings.filterwarnings(
@@ -92,12 +97,21 @@ class LinearLayer(nn.Module):
 class LapResNet(nn.Module):
     """Residual block utilizing Laplacian operator."""
 
-    def __init__(self, n_outputs: int, act: nn.Module) -> None:
+    def __init__(
+        self,
+        n_outputs: int,
+        act: nn.Module,
+        batch_norm_momentum: float | None = 0.1,
+    ) -> None:
         super().__init__()
         self.n_outputs = n_outputs
         self.act = act
         self.bn_fc0 = LinearLayer(
-            2 * n_outputs, n_outputs, use_batch_norm=True, act=act
+            2 * n_outputs,
+            n_outputs,
+            use_batch_norm=True,
+            act=act,
+            batch_norm_momentum=batch_norm_momentum,
         )
         self.bn_fc1 = LinearLayer(
             2 * n_outputs,
@@ -105,6 +119,7 @@ class LapResNet(nn.Module):
             use_batch_norm=True,
             act=act,
             truncated_init=True,
+            batch_norm_momentum=batch_norm_momentum,
         )
         return
 
@@ -130,11 +145,21 @@ class LapResNet(nn.Module):
 class DirResNet(nn.Module):
     """Residual block utilizing Dirac operators."""
 
-    def __init__(self, n_outputs: int, act: nn.Module, res_f: bool = False) -> None:
+    def __init__(
+        self,
+        n_outputs: int,
+        act: nn.Module,
+        res_f: bool = False,
+        batch_norm_momentum: float | None = 0.1,
+    ) -> None:
         super().__init__()
         self.n_outputs = n_outputs
         self.bn_fc0 = LinearLayer(
-            2 * n_outputs, n_outputs, use_batch_norm=True, act=act
+            2 * n_outputs,
+            n_outputs,
+            use_batch_norm=True,
+            act=act,
+            batch_norm_momentum=batch_norm_momentum,
         )
         self.bn_fc1 = LinearLayer(
             2 * n_outputs,
@@ -142,6 +167,7 @@ class DirResNet(nn.Module):
             use_batch_norm=True,
             act=act,
             truncated_init=True,
+            batch_norm_momentum=batch_norm_momentum,
         )
         self.res_f = res_f
         return
@@ -199,17 +225,29 @@ class DirResNet(nn.Module):
 class PointwiseResNet(nn.Module):
     """Pointwise residual block (no graph/mesh operators)."""
 
-    def __init__(self, n_outputs: int, act: nn.Module) -> None:
+    def __init__(
+        self,
+        n_outputs: int,
+        act: nn.Module,
+        batch_norm_momentum: float | None = 0.1,
+    ) -> None:
         super().__init__()
         self.n_outputs = n_outputs
         self.act = act
-        self.bn_fc0 = LinearLayer(n_outputs, n_outputs, use_batch_norm=True, act=act)
+        self.bn_fc0 = LinearLayer(
+            n_outputs,
+            n_outputs,
+            use_batch_norm=True,
+            act=act,
+            batch_norm_momentum=batch_norm_momentum,
+        )
         self.bn_fc1 = LinearLayer(
             n_outputs,
             n_outputs,
             use_batch_norm=True,
             act=act,
             truncated_init=True,
+            batch_norm_momentum=batch_norm_momentum,
         )
         return
 

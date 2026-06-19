@@ -18,16 +18,37 @@ class BaseDecoder(nn.Module):
         self.n_dense = cfg.model.n_dense
         self.dim_latent = cfg.model.dim_latent
         self.act = cfg.model.activation_cls()
-        self.conv_shape = LinearLayer(3, self.n_features, use_batch_norm=False)
-        self.conv_latent = LinearLayer(
-            self.n_features, self.n_features, use_batch_norm=True
+        self.momentum = cfg.model.batch_norm_momentum
+        self.conv_shape = LinearLayer(
+            3,
+            self.n_features,
+            use_batch_norm=False,
+            batch_norm_momentum=self.momentum,
         )
-        self.dense_latent1 = LinearLayer(self.dim_latent, self.n_dense, act=self.act)
+        self.conv_latent = LinearLayer(
+            self.n_features,
+            self.n_features,
+            use_batch_norm=True,
+            batch_norm_momentum=self.momentum,
+        )
+        self.dense_latent1 = LinearLayer(
+            self.dim_latent,
+            self.n_dense,
+            act=self.act,
+            batch_norm_momentum=self.momentum,
+        )
         self.dense_latent2 = LinearLayer(
-            self.n_dense, self.n_features, truncated_init=True
+            self.n_dense,
+            self.n_features,
+            truncated_init=True,
+            batch_norm_momentum=self.momentum,
         )
         self.fc_mu = LinearLayer(
-            self.n_features, 3, use_batch_norm=True, truncated_init=True
+            self.n_features,
+            3,
+            use_batch_norm=True,
+            truncated_init=True,
+            batch_norm_momentum=self.momentum,
         )
         return
 
@@ -63,7 +84,11 @@ class LapDecoder(BaseDecoder):
         cfg = Experiment.get_config()
         self.layers = nn.ModuleList(
             [
-                LapResNet(cfg.model.n_features, act=self.act)
+                LapResNet(
+                    cfg.model.n_features,
+                    act=self.act,
+                    batch_norm_momentum=self.momentum,
+                )
                 for _ in range(cfg.model.n_blocks_decoder)
             ]
         )
@@ -93,7 +118,11 @@ class DirDecoder(BaseDecoder):
         self.n_faces = n_faces
         self.layers = nn.ModuleList(
             [
-                DirResNet(cfg.model.n_features, act=self.act)
+                DirResNet(
+                    cfg.model.n_features,
+                    act=self.act,
+                    batch_norm_momentum=self.momentum,
+                )
                 for _ in range(cfg.model.n_blocks_decoder)
             ]
         )
@@ -124,7 +153,11 @@ class PointNetDecoder(BaseDecoder):
         cfg = Experiment.get_config()
         self.layers = nn.ModuleList(
             [
-                PointwiseResNet(cfg.model.n_features, act=self.act)
+                PointwiseResNet(
+                    cfg.model.n_features,
+                    act=self.act,
+                    batch_norm_momentum=self.momentum,
+                )
                 for _ in range(2 * cfg.model.n_blocks_decoder)
             ]
         )
