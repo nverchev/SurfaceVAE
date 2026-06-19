@@ -7,12 +7,17 @@ from typing import TYPE_CHECKING, Any, Literal
 import numpy as np
 from numpy import typing as npt
 
-BLUE = np.array([0.3, 0.3, 0.9])
-RED = np.array([0.9, 0.3, 0.3])
-GREEN = np.array([0.3, 0.9, 0.3])
-VIOLET = np.array([0.6, 0.0, 0.9])
-ORANGE = np.array([0.9, 0.6, 0.0])
-COLOR_TUPLE = (BLUE, RED, GREEN, VIOLET, ORANGE)
+BONE = np.array([0.89, 0.855, 0.788])
+SILVER = np.array([0.75, 0.75, 0.75])
+WARM_GRAY = np.array([0.8, 0.78, 0.75])
+LIGHT_GRAY = np.array([0.85, 0.85, 0.85])
+CREAM = np.array([0.92, 0.89, 0.83])
+BLUE = BONE
+RED = SILVER
+GREEN = WARM_GRAY
+VIOLET = LIGHT_GRAY
+ORANGE = CREAM
+COLOR_TUPLE = (BONE, SILVER, WARM_GRAY, LIGHT_GRAY, CREAM)
 
 
 if TYPE_CHECKING:
@@ -31,6 +36,8 @@ def render_mesh(
     cmap: str | Any = "viridis",
     clim: Sequence[float] | None = None,
     show_scalar_bar: bool = False,
+    show_edges: bool = False,
+    use_edl: bool = False,
 ) -> None:
     """Renders a sequence of meshes using PyVista."""
     try:
@@ -42,7 +49,7 @@ def render_mesh(
         return
 
     plotter = pv.Plotter(
-        lighting=None,
+        lighting="none",
         window_size=[1024, 1024],
         notebook=False,
         off_screen=not interactive,
@@ -58,17 +65,28 @@ def render_mesh(
             [0.8 * max_extent, 0.4 * max_extent, 2.0 * max_extent]
         )
         plotter.camera_position = [camera_pos, center, (0, 1, 0)]
-        for light_point in (
-            center + np.array([1.5 * max_extent, 1.5 * max_extent, 2 * max_extent]),
-            center + np.array([-1.5 * max_extent, 1.5 * max_extent, 2 * max_extent]),
-        ):
-            light = pv.Light(
-                position=light_point,
-                focal_point=center,
-                intensity=1,
-                positional=True,
-            )
-            plotter.add_light(light)
+        key_light = pv.Light(
+            position=center
+            + np.array([1.5 * max_extent, 1.5 * max_extent, 2.0 * max_extent]),
+            focal_point=center,
+            intensity=1.5,
+            positional=True,
+        )
+        plotter.add_light(key_light)
+        fill_light = pv.Light(
+            position=center + np.array([-1.5 * max_extent, 0.0, 1.5 * max_extent]),
+            focal_point=center,
+            intensity=0.5,
+            positional=True,
+        )
+        plotter.add_light(fill_light)
+        back_light = pv.Light(
+            position=center + np.array([0.0, 1.5 * max_extent, -2.0 * max_extent]),
+            focal_point=center,
+            intensity=0.8,
+            positional=True,
+        )
+        plotter.add_light(back_light)
 
     for i, (vertices, faces) in enumerate(meshes):
         if not len(vertices):
@@ -96,7 +114,7 @@ def render_mesh(
                     scalars="scalars",
                     rgb=True,
                     smooth_shading=True,
-                    show_edges=True,
+                    show_edges=show_edges,
                     edge_color="black",
                     line_width=1,
                 )
@@ -108,7 +126,7 @@ def render_mesh(
                     clim=clim,
                     show_scalar_bar=show_scalar_bar,
                     smooth_shading=True,
-                    show_edges=True,
+                    show_edges=show_edges,
                     edge_color="black",
                     line_width=1,
                 )
@@ -117,13 +135,17 @@ def render_mesh(
                 mesh_pv,
                 color=color,
                 smooth_shading=True,
-                show_edges=True,
+                show_edges=show_edges,
                 edge_color="black",
                 line_width=1,
             )
 
-    pv.Plotter.enable_eye_dome_lighting(plotter)
+    pv.Plotter.enable_ssao(plotter, kernel_size=256)
     pv.Plotter.enable_shadows(plotter)
+    plotter.enable_anti_aliasing("msaa")
+    if use_edl:
+        pv.Plotter.enable_eye_dome_lighting(plotter)
+
     if interactive:
         pv.Plotter.set_background(plotter, color="white")
         plotter.show()
