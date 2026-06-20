@@ -107,12 +107,30 @@ class BaseCOMAData(metaclass=Singleton):
             vertices = np.concatenate([train_vertices, val_vertices], axis=0)
             labels = np.concatenate([train_lbls, val_lbls], axis=0)
             if train_op is not None and val_op is not None:
-                operator = train_op + val_op
+                if (
+                    len(train_op) > 0
+                    and len(val_op) > 0
+                    and train_op[0] is train_op[-1]
+                    and val_op[0] is val_op[-1]
+                ):
+                    operator = [train_op[0]] * (len(train_op) + len(val_op))
+                else:
+                    operator = train_op + val_op
             else:
                 operator = None
 
             if train_op_adj is not None and val_op_adj is not None:
-                adjoint_operator = train_op_adj + val_op_adj
+                if (
+                    len(train_op_adj) > 0
+                    and len(val_op_adj) > 0
+                    and train_op_adj[0] is train_op_adj[-1]
+                    and val_op_adj[0] is val_op_adj[-1]
+                ):
+                    adjoint_operator = [train_op_adj[0]] * (
+                        len(train_op_adj) + len(val_op_adj)
+                    )
+                else:
+                    adjoint_operator = train_op_adj + val_op_adj
             else:
                 adjoint_operator = None
 
