@@ -1,4 +1,2 @@
-defaults:
-  - extrapolation
-
+name: COMA_EXTRAPOLATION
 leave_out: mouth_up
