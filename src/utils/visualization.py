@@ -42,11 +42,14 @@ def render_mesh(
     """Renders a sequence of meshes using PyVista."""
     try:
         import pyvista as pv
+
     except ImportError:
         print(
             "pyvista not installed. Please install it using pip: pip install pyvista."
         )
         return
+
+    import matplotlib.cm as cm
 
     plotter = pv.Plotter(
         lighting="none",
@@ -122,7 +125,7 @@ def render_mesh(
                 plotter.add_mesh(
                     mesh_pv,
                     scalars="scalars",
-                    cmap=cmap,
+                    cmap=cm.get_cmap(cmap),
                     clim=clim,
                     show_scalar_bar=show_scalar_bar,
                     smooth_shading=True,
