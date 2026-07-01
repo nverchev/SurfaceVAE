@@ -143,13 +143,44 @@ SurfaceVAE/
 
 ## Results on CoMA
 
-| Operator | Error (mm) | % nodes < 1 mm | # Weights |
+### Interpolation Experiment (Generalisation to unseen frames)
+
+The table below shows the performance of the model on the interpolation split (trained on 1000 epochs) using different operators, compared with the reference CoMA paper. Our unweighted topological graph operators achieve comparable performance with fewer parameters.
+
+| Operator / Model | Error (mm) | % nodes < 1 mm | # Weights |
 |---|---|---|---|
 | **CoMA** (Ranjan et al., ECCV 2018) | 0.845 ± 0.99 | 72.6 | 33,856 |
+| **SurfaceVAE** (`lap_graph_norm`) | 0.948 ± 0.89 | 67.4% | **29,427** |
+| **SurfaceVAE** (`lap_beltrami`) | 1.023 ± 0.97 | 63.3% | **29,427** |
+| **SurfaceVAE** (`dirac_graph_norm`) | 1.220 ± 1.13 | 56.1% | **29,427** |
+| **SurfaceVAE** (`lap_beltrami_norm`) | 1.322 ± 1.71 | 59.4% | **29,427** |
+| **SurfaceVAE** (`none` - no operator) | 1.550 ± 5.00 | 57.5% | 29,747 |
+| **SurfaceVAE** (`lap_graph_norm`, no mean shape) | 2.250 ± 1.90 | 30.1% | **29,427** |
 
-(NEW RESULTS WILL BE ADDED SOON)
+### Extrapolation Experiment (Generalisation to unseen expressions)
+
+In this cross-validation experiment, one expression is left out during training and the model is evaluated on its reconstruction. Below is a comparison of the mean reconstruction error (mm) and median error (mm) per left-out expression between the reference **CoMA** (Mesh Autoencoder) and our **SurfaceVAE** (`lap_graph_norm` operator).
+
+*Note: `mouth_extreme` was not run for SurfaceVAE.*
+
+| Expression | CoMA Mean Error (mm) | CoMA Median (mm) | SurfaceVAE Mean Error (mm) | SurfaceVAE Median (mm) |
+|---|---|---|---|---|
+| **bareteeth** | 1.376 ± 1.536 | 0.856 | **1.363 ± 1.310** | 0.919 |
+| **cheeks_in** | 1.288 ± 1.501 | 0.794 | **1.278 ± 1.323** | 0.857 |
+| **eyebrow** | 1.053 ± 1.088 | 0.706 | **1.018 ± 0.884** | 0.756 |
+| **high_smile** | **1.205 ± 1.252** | **0.772** | 1.220 ± 1.128 | 0.843 |
+| **lips_back** | **1.193 ± 1.476** | **0.708** | 1.218 ± 1.231 | 0.826 |
+| **lips_up** | 1.081 ± 1.192 | 0.656 | **1.060 ± 0.981** | 0.744 |
+| **mouth_down** | 1.050 ± 1.183 | 0.654 | **1.035 ± 0.963** | 0.760 |
+| **mouth_extreme** | 1.336 ± 1.820 | 0.738 | - | - |
+| **mouth_middle** | **1.017 ± 1.192** | **0.610** | 1.022 ± 1.000 | 0.705 |
+| **mouth_open** | 0.961 ± 1.127 | 0.583 | **0.955 ± 0.980** | 0.655 |
+| **mouth_side** | 1.264 ± 1.611 | 0.730 | **1.217 ± 1.372** | 0.791 |
+| **mouth_up** | 1.097 ± 1.212 | 0.683 | **1.063 ± 1.001** | 0.748 |
+| **Average (11 runs)** | 1.144 | 0.725 | **1.114** | 0.782 |
 
 ---
+
 
 ## Citation
 
