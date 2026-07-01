@@ -42,6 +42,9 @@ def render_mesh(
     """Renders a sequence of meshes using PyVista."""
     try:
         import pyvista as pv
+        import vtk
+
+        vtk.vtkObject.GlobalWarningDisplayOff()
 
     except ImportError:
         print(
