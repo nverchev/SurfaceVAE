@@ -1,14 +1,9 @@
 """COMA Dataset loading and splitting logic."""
 
-from typing import TYPE_CHECKING
-
 from src.config import Experiment
 from src.config.options import Datasets
 from src.data.coma import BaseCOMAData, COMAData, COMAExtrapolationData
-from src.data.split import Partitions
-
-if TYPE_CHECKING:
-    from src.data.split import COMADatasetSplit
+from src.data.split import Partitions, COMADatasetSplit
 
 
 def get_active_dataset() -> BaseCOMAData:
@@ -20,7 +15,7 @@ def get_active_dataset() -> BaseCOMAData:
     return COMAData()
 
 
-def _get_splits() -> tuple["COMADatasetSplit", "COMADatasetSplit"]:
+def _get_splits() -> tuple[COMADatasetSplit, COMADatasetSplit]:
     """Get training and evaluation datasets."""
     cfg = Experiment.get_config()
     train_partition = Partitions.train_val if cfg.final else Partitions.train
@@ -31,10 +26,10 @@ def _get_splits() -> tuple["COMADatasetSplit", "COMADatasetSplit"]:
     return train_dataset, eval_dataset
 
 
-def get_splits() -> tuple["COMADatasetSplit", "COMADatasetSplit"]:
+def get_splits() -> tuple[COMADatasetSplit, COMADatasetSplit]:
     """Get training and evaluation dataloaders in a multiprocess-safe way."""
     cfg = Experiment.get_config()
-    splits: tuple["COMADatasetSplit", "COMADatasetSplit"] | None = None
+    splits: tuple[COMADatasetSplit, COMADatasetSplit] | None = None
     if cfg.user.n_subprocesses:
         import torch.distributed as dist
 
