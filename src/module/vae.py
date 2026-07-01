@@ -48,7 +48,7 @@ class BaseVAE(nn.Module):
             torch.full((mean_shape.size(0), 1), math.log(0.001)),
         )
         self.register_buffer("mean_shape", mean_shape)
-        self.register_buffer("mean_shape_center", mean_shape.mean(dim=1, keepdim=True))
+        self.register_buffer("mean_shape_center", mean_shape.mean(dim=0, keepdim=True))
         self.register_buffer("mean_shape_std", mean_shape.std())
         if mean_operator is not None and mean_operator.numel() > 0:
             coalesced_op = mean_operator.coalesce()
