@@ -27,9 +27,11 @@ def reconstruct_samples() -> None:
     interactive = cfg_user.plot.interactive
     save_dir_base = cfg.user.path.version_dir / "images" / cfg.name / "reconstructed"
     if cfg_user.plot.use_train:
-        dataset = get_active_dataset().get_split(Partitions.train)
+        partition = Partitions.train_val if cfg.final else Partitions.train
     else:
-        dataset = get_active_dataset().get_split(Partitions.test)
+        partition = Partitions.test if cfg.final else Partitions.val
+
+    dataset = get_active_dataset().get_split(partition)
 
     vae_module = load_extract_vae_module()
     device = vae_module.mean_shape.device
