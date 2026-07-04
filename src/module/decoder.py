@@ -25,6 +25,7 @@ class BaseDecoder(nn.Module, metaclass=ABCMeta):
             3,
             self.n_features,
             use_batch_norm=False,
+            act=nn.Hardtanh(-3.0, 3.0),
             batch_norm_momentum=self.momentum,
         )
         self.conv_latent = LinearLayer(
@@ -32,6 +33,7 @@ class BaseDecoder(nn.Module, metaclass=ABCMeta):
             self.n_features,
             use_batch_norm=True,
             batch_norm_momentum=self.momentum,
+            act=nn.Hardtanh(-3.0, 3.0),
         )
         self.dense_latent1 = LinearLayer(
             self.dim_latent,
