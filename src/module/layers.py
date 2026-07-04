@@ -121,6 +121,7 @@ class LapResNet(nn.Module):
             truncated_init=True,
             batch_norm_momentum=batch_norm_momentum,
         )
+        self.hardtanh = nn.Hardtanh(min_val=-3.0, max_val=3.0)
         return
 
     def _apply_L(self, L: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
@@ -139,6 +140,7 @@ class LapResNet(nn.Module):
         L_x = self._apply_L(L, x)
         x = torch.cat([x, L_x], 2)
         x = self.bn_fc1(x)
+        x = self.hardtanh(x)
         return x + inputs
 
 
