@@ -26,7 +26,7 @@ class LinearLayer(nn.Module):
         use_batch_norm: bool = False,
         act: nn.Module | None = None,
         truncated_init: bool = False,
-        batch_norm_momentum: float | None = 0.1,
+        batch_norm_momentum: float | None = None,
     ) -> None:
         super().__init__()
         self.n_inputs = n_inputs

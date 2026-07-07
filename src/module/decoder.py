@@ -21,31 +21,22 @@ class BaseDecoder(nn.Module, metaclass=ABCMeta):
         self.dim_latent = cfg.model.dim_latent
         self.act = cfg.model.activation_cls()
         self.momentum = cfg.model.batch_norm_momentum
-        self.conv_shape = LinearLayer(
-            3,
-            self.n_features,
-            use_batch_norm=False,
-            act=nn.Hardtanh(-3.0, 3.0),
-            batch_norm_momentum=self.momentum,
-        )
-        self.conv_latent = LinearLayer(
+        self.conv_shape = LinearLayer(3, self.n_features, act=nn.Hardtanh())
+        self.conv_post_latent = LinearLayer(
             self.n_features,
             self.n_features,
             use_batch_norm=True,
             batch_norm_momentum=self.momentum,
-            act=nn.Hardtanh(-3.0, 3.0),
         )
         self.dense_latent1 = LinearLayer(
             self.dim_latent,
             self.n_dense,
             act=self.act,
-            batch_norm_momentum=self.momentum,
         )
         self.dense_latent2 = LinearLayer(
             self.n_dense,
             self.n_features,
             truncated_init=True,
-            batch_norm_momentum=self.momentum,
         )
         self.fc_mu = LinearLayer(
             self.n_features,
@@ -63,7 +54,7 @@ class BaseDecoder(nn.Module, metaclass=ABCMeta):
         features = self.dense_latent1(z)
         features = self.dense_latent2(features)
         x = torch.mul(x, features.unsqueeze(1))
-        x = self.conv_latent(x)
+        x = self.conv_post_latent(x)
         return x
 
     def _forward_dense(self, x: torch.Tensor) -> torch.Tensor:
