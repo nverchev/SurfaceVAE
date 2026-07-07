@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 def get_parameter_decomposition(
     module: torch.nn.Module, max_depth: int = 3
-) -> list[tuple[str, int, int]]:
-    """Recursively list named modules and their parameter counts."""
+) -> list[tuple[str, int, int, int]]:
+    """Recursively list named modules and their parameter and buffer counts."""
     decomp = []
 
     def _recurse(m: torch.nn.Module, depth: int, prefix: str) -> None:
@@ -25,11 +25,12 @@ def get_parameter_decomposition(
         trainable_p = sum(
             p.numel() for p in m.parameters(recurse=True) if p.requires_grad
         )
-        if total_p == 0:
+        total_b = sum(b.numel() for b in m.buffers(recurse=True))
+        if total_p == 0 and total_b == 0:
             return
 
         name = prefix if prefix else "root"
-        decomp.append((name, total_p, trainable_p))
+        decomp.append((name, total_p, trainable_p, total_b))
         for child_name, child in m.named_children():
             child_prefix = f"{prefix}.{child_name}" if prefix else child_name
             _recurse(child, depth + 1, child_prefix)
@@ -92,14 +93,22 @@ def save_profiler_csv(
 
 
 def save_parameters(model: torch.nn.Module, profile_dir: pathlib.Path) -> None:
-    """Save model parameters decomposition to parameters.csv."""
+    """Save model parameters and buffers decomposition to parameters.csv."""
     param_decomp = get_parameter_decomposition(model)
     with open(profile_dir / "parameters.csv", "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["module", "total_parameters", "trainable_parameters"])
-        for name, total_p, trainable_p in param_decomp:
-            writer.writerow([name, total_p, trainable_p])
+        writer.writerow(
+            ["module", "total_parameters", "trainable_parameters", "total_buffers"]
+        )
+        for name, total_p, trainable_p, total_b in param_decomp:
+            writer.writerow([name, total_p, trainable_p, total_b])
 
+    total_p = sum(p.numel() for p in model.parameters())
+    trainable_p = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total_b = sum(b.numel() for b in model.buffers())
+    logger.info(
+        f"Model parameters: {total_p:,} (trainable: {trainable_p:,}, buffers: {total_b:,})"
+    )
     return
 
 

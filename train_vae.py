@@ -60,7 +60,10 @@ def train_vae(trial: Trial | None = None) -> None:
     if trial is None:
         n_params = sum(p.numel() for p in vae.parameters())
         trainable_params = sum(p.numel() for p in vae.parameters() if p.requires_grad)
-        logger.info(f"Model parameters: {n_params:,} (trainable: {trainable_params:,})")
+        n_buffers = sum(b.numel() for b in vae.buffers())
+        logger.info(
+            f"Model parameters: {n_params:,} (trainable: {trainable_params:,}, buffers: {n_buffers:,})"
+        )
         model = EMAModelEpoch(
             vae, name=f"VAE_{cfg.model.operator}", device=cfg.user.device
         )
