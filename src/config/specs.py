@@ -151,6 +151,17 @@ class EarlyStoppingConfig:
 
 
 @dataclass
+class ObjectiveConfig:
+    """Specification for the objective function.
+
+    Attributes:
+        beta (PositiveFloat): The Laplace loss scale parameter beta.
+    """
+
+    beta: PositiveFloat = 0.01
+
+
+@dataclass
 class TrainingConfig:
     """Specification for the training process.
 
@@ -161,6 +172,7 @@ class TrainingConfig:
         early_stopping (EarlyStoppingConfig): The configuration for early stopping
         loss_type (LossTypes): The loss function type
         annealing_period (PositiveInt): Epoch period for KL divergence annealing (0 disables annealing)
+        objective (ObjectiveConfig): The objective configuration
     """
 
     batch_size: StrictlyPositiveInt
@@ -169,6 +181,7 @@ class TrainingConfig:
     early_stopping: EarlyStoppingConfig
     loss_type: LossTypes
     _n_subprocesses: PositiveInt
+    objective: ObjectiveConfig = dataclasses.field(default_factory=ObjectiveConfig)
 
     annealing_period: PositiveInt = 100
 

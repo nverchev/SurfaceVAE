@@ -45,7 +45,7 @@ class BaseVAE(nn.Module):
         self.operator_type = cfg.model.operator
         self.register_buffer(
             "recon_logvar",
-            torch.tensor([math.log(0.001)]),
+            torch.tensor([math.log(cfg.train.objective.beta)]),
         )
         self.register_buffer("mean_shape", mean_shape)
         self.register_buffer("mean_shape_center", mean_shape.mean(dim=0, keepdim=True))
