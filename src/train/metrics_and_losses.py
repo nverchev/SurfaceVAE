@@ -11,7 +11,6 @@ from drytorch.lib import aggregators
 from drytorch.lib.objectives import (
     Loss,
     LossBase,
-    Metric,
     Objective,
 )
 from src.config.experiment import Experiment
@@ -108,7 +107,7 @@ def get_nll(normalize: Callable[[torch.Tensor], torch.Tensor]) -> Loss[Output, T
         targets_normalized = normalize(targets.x)
         diff = targets_normalized - outputs.recon_mu
         per_vertex_norm = torch.norm(diff, dim=-1)
-        log_b = outputs.recon_logvar.clamp(-10.0, -1.0).squeeze(-1)
+        log_b = outputs.recon_logvar.squeeze(-1)
         b = log_b.exp()
         per_vertex_nll = 3.0 * log_b + per_vertex_norm / b
         return per_vertex_nll.sum(dim=-1)
@@ -125,15 +124,6 @@ def get_kld() -> LossBase[Output, Target]:
         ).sum(1)
 
     return Loss(_kld, name="KLD")
-
-
-def get_pointwise_scale() -> Metric[Output, Target]:
-    """Metric for average Laplace scale b = exp(recon_logvar) across vertices."""
-
-    def _pointwise_scale(outputs: Output, _: Target) -> torch.Tensor:
-        return outputs.recon_logvar.exp().mean()
-
-    return Metric(_pointwise_scale, name="PScale")
 
 
 def get_annealing() -> Loss[Output, Target]:
@@ -167,7 +157,6 @@ def get_vae_loss(
     else:
         loss = nll + kld
 
-    loss.watch(get_pointwise_scale())
     return loss
 
 
