@@ -1,6 +1,6 @@
 [project]
 name = "SurfaceVAE"
-version = "2.0"
+version = "2.1"
 description = "Variational Auto-Encoder for 3D surface meshes using fixed-graph spectral operators"
 readme = "README.md"
 requires-python = "~=3.13.0"
