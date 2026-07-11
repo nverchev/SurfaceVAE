@@ -75,36 +75,122 @@ uv sync --extra visualize   # PyVista + Seaborn for visualisation
 ---
 
 ## Usage
+The default configuration trains with the **graph Laplacian** operator (`lap_graph_norm` — the Laplacian with uniform weights defined from the adjacency matrix only) and 8 latent dimensions.
 
-### Training
+### Replicating the experiments
 
-The default configuration trains with the **graph Laplacian** operator (`lap_graph_norm`),
-8 latent dimensions, and 1000 epochs:
+#### 1. Interpolation Experiment (Generalisation to unseen frames)
+Predicting unseen frames:
 
+##### Graph Laplacian with mean-shape decoder initialization
 ```bash
 uv run train_vae.py
 ```
 
-To train with the **graph Dirac** operator instead:
-
+##### Graph Laplacian without mean-shape decoder initialization
 ```bash
-uv run train_vae.py model=dir_vae
+uv run train_vae.py model.use_mean_shape=false
 ```
 
-Common overrides (Hydra syntax):
+#### 2. Extrapolation Experiment (Generalisation to unseen expressions)
+Predicting unseen expressions:
 
+##### Leaving out bareteeth expression
 ```bash
-# Change number of epochs
-uv run train_vae.py train.n_epochs=500
+uv run train_vae.py data/dataset=bareteeth
+```
 
-# Resume from a checkpoint (epoch number)
-uv run train_vae.py user.load_checkpoint=500
+##### Leaving out cheeks_in expression
+```bash
+uv run train_vae.py data/dataset=cheeks_in
+```
 
-# Disable GPU (force CPU)
-uv run train_vae.py user.cpu=true
+##### Leaving out eyebrow expression
+```bash
+uv run train_vae.py data/dataset=eyebrow
+```
 
-# Change the latent space dimension
-uv run train_vae.py model.dim_latent=16
+##### Leaving out high_smile expression
+```bash
+uv run train_vae.py data/dataset=high_smile
+```
+
+##### Leaving out lips_back expression
+```bash
+uv run train_vae.py data/dataset=lips_back
+```
+
+##### Leaving out lips_up expression
+```bash
+uv run train_vae.py data/dataset=lips_up
+```
+
+##### Leaving out mouth_down expression
+```bash
+uv run train_vae.py data/dataset=mouth_down
+```
+
+##### Leaving out mouth_extreme expression
+```bash
+uv run train_vae.py data/dataset=mouth_extreme
+```
+
+##### Leaving out mouth_middle expression
+```bash
+uv run train_vae.py data/dataset=mouth_middle
+```
+
+##### Leaving out mouth_open expression
+```bash
+uv run train_vae.py data/dataset=mouth_open
+```
+
+##### Leaving out mouth_side expression
+```bash
+uv run train_vae.py data/dataset=mouth_side
+```
+
+##### Leaving out mouth_up expression
+```bash
+uv run train_vae.py data/dataset=mouth_up
+```
+
+#### 3. Identity Experiment (Generalisation to unseen subject identities)
+Predicting unseen subjects:
+
+##### Baseline without operator
+```bash
+uv run train_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=none
+```
+
+##### Graph Laplacian (default)
+```bash
+uv run train_vae.py data/dataset=identity train.objective.beta=1 final=true
+```
+
+##### Laplace-Beltrami (geometry-dependent)
+```bash
+uv run train_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=lap_beltrami
+```
+
+##### Normalized Laplace-Beltrami
+```bash
+uv run train_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=lap_beltrami_norm
+```
+
+##### Continuous Dirac operator
+```bash
+uv run train_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=dirac
+```
+
+##### Continuous normalized Dirac operator
+```bash
+uv run train_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=dirac_norm
+```
+
+##### Graph Dirac operator
+```bash
+uv run train_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=dirac_graph_norm
 ```
 
 
@@ -114,10 +200,13 @@ uv run train_vae.py model.dim_latent=16
 
 | Config key | Operator | Description |
 |---|---|---|
-| `lap_graph_norm` | Adjacency Laplacian | Normalised graph Laplacian from adjacency matrix only (default) |
-| `dirac_graph_norm` | Adjacency Dirac | Topology-only Dirac operator, generalises to chordal graphs |
+| `none` | Pointwise baseline | Pointwise baseline, no operators/graph structure used |
+| `lap_graph_norm` | Adjacency Laplacian | Normalised graph Laplacian with uniform weights (from adjacency matrix only, default) |
 | `lap_beltrami` | Laplace-Beltrami | Cotangent-weighted Laplacian (geometry-dependent) |
-| `dirac_norm` | Dirac (Crane et al.) | Original continuous Dirac operator (high memory cost) |
+| `lap_beltrami_norm` | Normalized Laplace-Beltrami | Area-normalized cotangent-weighted Laplace-Beltrami operator |
+| `dirac_graph_norm` | Adjacency Dirac | Topology-only Dirac operator, generalises to chordal graphs |
+| `dirac` | Continuous Dirac | Continuous coordinate-dependent area-normalized Dirac operator |
+| `dirac_norm` | Dirac (Crane et al.) | Continuous coordinate-dependent right-normalized Dirac operator (high memory cost) |
 
 ---
 
@@ -145,17 +234,13 @@ SurfaceVAE/
 
 ### Interpolation Experiment (Generalisation to unseen frames)
 
-The table below shows the performance of the model on the interpolation split (trained on 1000 epochs) using different operators, compared with the reference CoMA paper. Our unweighted topological graph operators achieve comparable performance with fewer parameters.
+The table below shows the performance of the model on the interpolation split using the Graph Laplacian operator (`lap_graph_norm`), compared with the reference CoMA paper.
 
 | Operator / Model | Error (mm) | % nodes < 1 mm | # Weights |
 |---|---|---|---|
 | **CoMA** (Ranjan et al., ECCV 2018) | 0.845 ± 0.99 | 72.6 | 33,856 |
-| **SurfaceVAE** (`lap_graph_norm`) | 0.948 ± 0.89 | 67.4% | **29,427** |
-| **SurfaceVAE** (`lap_beltrami`) | 1.023 ± 0.97 | 63.3% | **29,427** |
-| **SurfaceVAE** (`dirac_graph_norm`) | 1.220 ± 1.13 | 56.1% | **29,427** |
-| **SurfaceVAE** (`lap_beltrami_norm`) | 1.322 ± 1.71 | 59.4% | **29,427** |
-| **SurfaceVAE** (`none` - no operator) | 1.550 ± 5.00 | 57.5% | 29,747 |
-| **SurfaceVAE** (`lap_graph_norm`, no mean shape) | 2.250 ± 1.90 | 30.1% | **29,427** |
+| **SurfaceVAE** (no mean shape) | - | - | **33,779** |
+| **SurfaceVAE**| - | - | **33,779** |
 
 ### Extrapolation Experiment (Generalisation to unseen expressions)
 
@@ -165,19 +250,19 @@ In this cross-validation experiment, one expression is left out during training 
 
 | Expression | CoMA Mean Error (mm) | CoMA Median (mm) | SurfaceVAE Mean Error (mm) | SurfaceVAE Median (mm) |
 |---|---|---|---|---|
-| **bareteeth** | 1.376 ± 1.536 | 0.856 | **1.363 ± 1.310** | 0.919 |
-| **cheeks_in** | 1.288 ± 1.501 | 0.794 | **1.278 ± 1.323** | 0.857 |
-| **eyebrow** | 1.053 ± 1.088 | 0.706 | **1.018 ± 0.884** | 0.756 |
-| **high_smile** | **1.205 ± 1.252** | **0.772** | 1.220 ± 1.128 | 0.843 |
-| **lips_back** | **1.193 ± 1.476** | **0.708** | 1.218 ± 1.231 | 0.826 |
-| **lips_up** | 1.081 ± 1.192 | 0.656 | **1.060 ± 0.981** | 0.744 |
-| **mouth_down** | 1.050 ± 1.183 | 0.654 | **1.035 ± 0.963** | 0.760 |
+| **bareteeth** | 1.376 ± 1.536 | 0.856 | - | - |
+| **cheeks_in** | 1.288 ± 1.501 | 0.794 | - | - |
+| **eyebrow** | 1.053 ± 1.088 | 0.706 | - | - |
+| **high_smile** | **1.205 ± 1.252** | **0.772** | - | - |
+| **lips_back** | **1.193 ± 1.476** | **0.708** | - | - |
+| **lips_up** | 1.081 ± 1.192 | 0.656 | - | - |
+| **mouth_down** | 1.050 ± 1.183 | 0.654 | - | - |
 | **mouth_extreme** | 1.336 ± 1.820 | 0.738 | - | - |
-| **mouth_middle** | **1.017 ± 1.192** | **0.610** | 1.022 ± 1.000 | 0.705 |
-| **mouth_open** | 0.961 ± 1.127 | 0.583 | **0.955 ± 0.980** | 0.655 |
-| **mouth_side** | 1.264 ± 1.611 | 0.730 | **1.217 ± 1.372** | 0.791 |
-| **mouth_up** | 1.097 ± 1.212 | 0.683 | **1.063 ± 1.001** | 0.748 |
-| **Average (11 runs)** | 1.144 | 0.725 | **1.114** | 0.782 |
+| **mouth_middle** | **1.017 ± 1.192** | **0.610** | - | - |
+| **mouth_open** | 0.961 ± 1.127 | 0.583 | - | - |
+| **mouth_side** | 1.264 ± 1.611 | 0.730 | - | - |
+| **mouth_up** | 1.097 ± 1.212 | 0.683 | - | - |
+| **Average (11 runs)** | 1.144 | 0.725 | - | - |
 
 ---
 
