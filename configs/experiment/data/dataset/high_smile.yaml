@@ -1,2 +1,3 @@
 name: COMA_EXTRAPOLATION
-leave_out: high_smile
+test: high_smile
+validation: bareteeth

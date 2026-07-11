@@ -2,7 +2,7 @@
 
 from src.data.coma import (
     BaseCOMAData,
-    COMAData,
+    COMAInterpolationData,
     COMAExtrapolationData,
     N_FACES,
     N_VERTICES,
@@ -20,7 +20,7 @@ __all__ = [
     "Target",
     "Output",
     "BaseCOMAData",
-    "COMAData",
+    "COMAInterpolationData",
     "COMAExtrapolationData",
     "get_active_dataset",
     "COMADatasetSplit",

@@ -18,6 +18,7 @@ from src.config.torch import ActClass, get_activation_cls, get_optim_cls, set_se
 from src.config.options import (
     Datasets,
     Expressions,
+    Identities,
     ModelOperators,
     LossTypes,
     Schedulers,
@@ -34,17 +35,31 @@ class DatasetConfig:
 
     Attributes:
         name (Datasets): The name of the dataset
+        validation (str | None): The validation expression or subject identity
+        test (str | None): The test expression or subject identity
     """
 
     name: Datasets
-    leave_out: Expressions | None = None
+    validation: str | None = None
+    test: str | None = None
 
     @model_validator(mode="after")
     def _validate_extrapolation(self) -> Self:
         if self.name == Datasets.COMA_EXTRAPOLATION:
-            if self.leave_out is None:
-                msg = "Leave-out expression must be specified for COMA_EXTRAPOLATION."
-                raise ValueError(msg)
+            try:
+                self.validation = Expressions(self.validation)
+                self.test = Expressions(self.test)
+            except ValueError as e:
+                msg = "Test and validation expressions must be specified for COMA_EXTRAPOLATION."
+                raise ValueError(msg) from e
+
+        if self.name == Datasets.COMA_IDENTITY:
+            try:
+                self.validation = Identities(self.validation)
+                self.test = Identities(self.test)
+            except ValueError as e:
+                msg = "Both validation and test identities must be specified for COMA_IDENTITY."
+                raise ValueError(msg) from e
 
         return self
 

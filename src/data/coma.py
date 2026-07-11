@@ -1,4 +1,11 @@
-"""COMA dataset class definitions and preprocessing logic."""
+"""COMA dataset class definitions and preprocessing logic.
+
+A typical PLY path format is:
+`<data_dir>/COMA_data/<subject_id>/<expression>/<frame_name>.ply`
+- parts[-1] is the frame name (e.g., `lips_up.000001.ply`)
+- parts[-2] is the expression name (e.g., `lips_up`)
+- parts[-3] is the subject identity (e.g., `FaceTalk_170809_00138_TA`)
+"""
 
 import abc
 import enum
@@ -294,8 +301,8 @@ class BaseCOMAData(metaclass=Singleton):
         """Split paths into train, validation, and test sets."""
 
 
-class COMAData(BaseCOMAData):
-    """Standard COMA dataset loader."""
+class COMAInterpolationData(BaseCOMAData):
+    """Standard COMA dataset loader for interpolation."""
 
     def _get_h5_path(self) -> pathlib.Path:
         return self.coma_dir / "COMA_dataset.h5"
@@ -329,31 +336,60 @@ class COMAExtrapolationData(BaseCOMAData):
     """COMA extrapolation dataset loader."""
 
     def _setup_attributes(self, cfg: Any) -> None:
-        self.leave_out = cfg.data.dataset.leave_out
+        self.test = cfg.data.dataset.test
+        self.validation = cfg.data.dataset.validation
         return
 
     def _get_h5_path(self) -> pathlib.Path:
-        return self.coma_dir / f"COMA_{self.leave_out}.h5"
+        default_val = next(exp for exp in Expressions if exp != self.test)
+        if self.validation == default_val:
+            return self.coma_dir / f"COMA_{self.test}.h5"
+
+        return self.coma_dir / f"COMA_val_{self.validation}_test_{self.test}.h5"
 
     def _split_paths(
         self, ply_paths: list[pathlib.Path]
     ) -> dict[Partitions, list[pathlib.Path]]:
-        """Split paths into train, validation, and test sets.
-
-        A typical PLY path format is:
-        `<data_dir>/COMA_data/<subject_id>/<expression>/<frame_name>.ply`
-        - parts[-1] is the frame name (e.g., `lips_up.000001.ply`)
-        - parts[-2] is the expression name (e.g., `lips_up`)
-        - parts[-3] is the subject identity (e.g., `FaceTalk_170809_00138_TA`)
-        """
+        """Split paths into train, validation, and test sets."""
         train_paths: list[pathlib.Path] = []
         val_paths: list[pathlib.Path] = []
         test_paths: list[pathlib.Path] = []
-        val_expression = next(exp.name for exp in Expressions if exp != self.leave_out)
         for p in ply_paths:
-            if len(p.parts) >= 2 and p.parts[-2] == self.leave_out:
+            if len(p.parts) >= 2 and p.parts[-2] == self.test:
                 test_paths.append(p)
-            elif len(p.parts) >= 2 and p.parts[-2] == val_expression:
+            elif len(p.parts) >= 2 and p.parts[-2] == self.validation:
+                val_paths.append(p)
+            else:
+                train_paths.append(p)
+
+        return {
+            Partitions.train: train_paths,
+            Partitions.val: val_paths,
+            Partitions.test: test_paths,
+        }
+
+
+class COMAIdentityData(BaseCOMAData):
+    """COMA identity extrapolation dataset loader."""
+
+    def _setup_attributes(self, cfg: Any) -> None:
+        self.validation = cfg.data.dataset.validation
+        self.test = cfg.data.dataset.test
+        return
+
+    def _get_h5_path(self) -> pathlib.Path:
+        return self.coma_dir / f"COMA_val_{self.validation}_test_{self.test}.h5"
+
+    def _split_paths(
+        self, ply_paths: list[pathlib.Path]
+    ) -> dict[Partitions, list[pathlib.Path]]:
+        train_paths: list[pathlib.Path] = []
+        val_paths: list[pathlib.Path] = []
+        test_paths: list[pathlib.Path] = []
+        for p in ply_paths:
+            if len(p.parts) >= 3 and p.parts[-3] == self.test:
+                test_paths.append(p)
+            elif len(p.parts) >= 3 and p.parts[-3] == self.validation:
                 val_paths.append(p)
             else:
                 train_paths.append(p)

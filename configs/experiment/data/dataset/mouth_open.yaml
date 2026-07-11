@@ -1,2 +1,3 @@
 name: COMA_EXTRAPOLATION
-leave_out: mouth_open
+test: mouth_open
+validation: bareteeth

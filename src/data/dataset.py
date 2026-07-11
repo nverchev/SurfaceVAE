@@ -2,7 +2,12 @@
 
 from src.config import Experiment
 from src.config.options import Datasets
-from src.data.coma import BaseCOMAData, COMAData, COMAExtrapolationData
+from src.data.coma import (
+    BaseCOMAData,
+    COMAInterpolationData,
+    COMAExtrapolationData,
+    COMAIdentityData,
+)
 from src.data.split import Partitions, COMADatasetSplit
 
 
@@ -12,7 +17,10 @@ def get_active_dataset() -> BaseCOMAData:
     if cfg.data.dataset.name == Datasets.COMA_EXTRAPOLATION:
         return COMAExtrapolationData()
 
-    return COMAData()
+    if cfg.data.dataset.name == Datasets.COMA_IDENTITY:
+        return COMAIdentityData()
+
+    return COMAInterpolationData()
 
 
 def _get_splits() -> tuple[COMADatasetSplit, COMADatasetSplit]:
