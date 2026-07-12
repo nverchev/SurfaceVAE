@@ -2,22 +2,12 @@
 
 import pathlib
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from numpy import typing as npt
 
-BONE = np.array([0.89, 0.855, 0.788])
-SILVER = np.array([0.75, 0.75, 0.75])
-WARM_GRAY = np.array([0.8, 0.78, 0.75])
-LIGHT_GRAY = np.array([0.85, 0.85, 0.85])
-CREAM = np.array([0.92, 0.89, 0.83])
-BLUE = BONE
-RED = SILVER
-GREEN = WARM_GRAY
-VIOLET = LIGHT_GRAY
-ORANGE = CREAM
-COLOR_TUPLE = (BONE, SILVER, WARM_GRAY, LIGHT_GRAY, CREAM)
+TERRACOTTA = np.array([0.75, 0.45, 0.35])
 
 
 if TYPE_CHECKING:
@@ -28,7 +18,7 @@ else:
 
 def render_mesh(
     meshes: Sequence[tuple[npt.NDArray[Any], npt.NDArray[Any]]],
-    colorscale: Literal["blue_red", "sequence"] = "sequence",
+    color: str | Sequence[float] | Sequence[str | Sequence[float]] | None = None,
     interactive: bool = True,
     title: str = "Mesh",
     save_dir: pathlib.Path = pathlib.Path() / "images",
@@ -98,13 +88,16 @@ def render_mesh(
         if not len(vertices):
             continue
 
-        if colorscale == "blue_red":
-            i_norm = i / max(1, len(meshes) - 1)
-            color = (1 - i_norm) * BLUE + i_norm * RED
-        elif colorscale == "sequence":
-            color = COLOR_TUPLE[i % len(COLOR_TUPLE)]
+        if color is None:
+            mesh_color: Any = TERRACOTTA
+        elif isinstance(color, str):
+            mesh_color = color
+        elif isinstance(color, Sequence) and not isinstance(
+            color[0], (int, float, np.integer, np.floating)
+        ):
+            mesh_color = color[i % len(color)]
         else:
-            raise ValueError("Colorscale not available")
+            mesh_color = color
 
         num_faces = faces.shape[0]
         pyvista_faces = np.column_stack(
@@ -139,7 +132,7 @@ def render_mesh(
         else:
             plotter.add_mesh(
                 mesh_pv,
-                color=color,
+                color=mesh_color,
                 smooth_shading=True,
                 show_edges=show_edges,
                 edge_color="black",
