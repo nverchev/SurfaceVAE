@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 from src.config import AllConfig, Experiment, hydra_main
-from src.data.coma import COMAData
+from src.data.coma import BaseCOMAData
 from src.train.models import load_extract_vae_module
 from src.utils.visualization import render_mesh
 
@@ -21,7 +21,7 @@ def tour_latent_space() -> None:
     save_dir.mkdir(parents=True, exist_ok=True)
     vae_module = load_extract_vae_module()
     device = vae_module.mean_shape.device
-    faces = COMAData.get_faces()
+    faces = BaseCOMAData.get_faces()
     if vae_module.use_mean_shape:
         decoder_mean_shape = vae_module.normalize_sample(vae_module.mean_shape)
     else:
