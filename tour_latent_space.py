@@ -31,37 +31,50 @@ def tour_latent_space() -> None:
     mean_operator_adjoint = vae_module.normalize_operator(
         vae_module.mean_operator_adjoint
     )
-    n_steps = cfg_user.generate.tour_samples
+    n_steps_per_plane = cfg_user.generate.tour_samples_per_plane
     radius = cfg_user.generate.tour_radius
-    for j in range(n_steps):
-        t = 2.0 * np.pi * j / n_steps
-        v = np.array(
-            [
-                np.cos(t),
-                np.sin(t),
-                np.cos(2.0 * t),
-                np.sin(2.0 * t),
-                np.cos(3.0 * t),
-                np.sin(3.0 * t),
-                np.cos(4.0 * t),
-                np.sin(4.0 * t),
-            ]
+    d_latent = vae_module.dim_latent
+    if d_latent < 2:
+        raise ValueError(
+            f"Latent space dimension must be at least 2 for touring, but got {d_latent}"
         )
-        z_np = radius * v / np.linalg.norm(v)
-        z = torch.from_numpy(z_np).unsqueeze(0).to(dtype=torch.float32, device=device)
-        recon_mu = vae_module.decode(
-            z, mean_operator, mean_operator_adjoint, decoder_mean_shape
-        )
-        recon_vertices = (
-            vae_module.denormalize_sample(recon_mu).squeeze(0).cpu().numpy()
-        )
-        logging.info("Rendering Tour Step %d / %d", j + 1, n_steps)
-        render_mesh(
-            ((recon_vertices, faces),),
-            title=f"tour_step_{j:03d}",
-            interactive=interactive,
-            save_dir=save_dir,
-        )
+
+    total_steps = (d_latent - 1) * n_steps_per_plane
+    global_step = 0
+    for i in range(1, d_latent):
+        for j in range(n_steps_per_plane):
+            t = 2.0 * np.pi * j / n_steps_per_plane
+            v = np.zeros(d_latent, dtype=np.float32)
+            v[0] = np.cos(t)
+            v[i] = np.sin(t)
+            z_np = radius * v
+            z = (
+                torch.from_numpy(z_np)
+                .unsqueeze(0)
+                .to(dtype=torch.float32, device=device)
+            )
+            recon_mu = vae_module.decode(
+                z, mean_operator, mean_operator_adjoint, decoder_mean_shape
+            )
+            recon_vertices = (
+                vae_module.denormalize_sample(recon_mu).squeeze(0).cpu().numpy()
+            )
+            logging.info(
+                "Rendering Tour Step %d / %d (Plane %d/%d, Step %d/%d)",
+                global_step + 1,
+                total_steps,
+                i,
+                d_latent - 1,
+                j + 1,
+                n_steps_per_plane,
+            )
+            render_mesh(
+                ((recon_vertices, faces),),
+                title=f"tour_step_{global_step:03d}",
+                interactive=interactive,
+                save_dir=save_dir,
+            )
+            global_step += 1
 
     return
 

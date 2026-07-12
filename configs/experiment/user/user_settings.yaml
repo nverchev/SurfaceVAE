@@ -23,7 +23,7 @@ generate:
   batch_size: 8
   bias_dim: 0
   bias_value: 0.
-  tour_samples: 100
+  tour_samples_per_plane: 16
   tour_radius: 1.0
 
 # Options for visualization

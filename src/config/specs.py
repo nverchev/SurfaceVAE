@@ -288,7 +288,7 @@ class GenerationOptions:
     batch_size: StrictlyPositiveInt
     bias_dim: PositiveInt
     bias_value: float
-    tour_samples: StrictlyPositiveInt = 100
+    tour_samples_per_plane: StrictlyPositiveInt = 16
     tour_radius: float = 1.0
 
 
