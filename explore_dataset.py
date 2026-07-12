@@ -1,6 +1,8 @@
 """Explore and visualize the 3D mesh dataset hierarchy."""
 
 import logging
+import random
+
 from collections.abc import Sized
 
 import torch
@@ -26,6 +28,10 @@ def explore_dataset() -> None:
     class_names = dataset.class_names
     faces = dataset.faces
     sample_indices = cfg_user.plot.sample_indices
+    if not sample_indices:
+        assert isinstance(dataset, Sized)
+        sample_indices = [random.randint(0, len(dataset) - 1)]
+
     for i in sample_indices:
         assert isinstance(dataset, Sized)
         if i >= len(dataset):

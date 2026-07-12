@@ -1,6 +1,8 @@
 """Reconstruct samples from the dataset."""
 
 import logging
+import random
+
 from collections.abc import Sized
 
 import numpy as np
@@ -38,6 +40,10 @@ def reconstruct_samples() -> None:
     class_names = dataset.class_names
     faces = dataset.faces
     sample_indices = cfg_user.plot.sample_indices
+    if not sample_indices:
+        assert isinstance(dataset, Sized)
+        sample_indices = [random.randint(0, len(dataset) - 1)]
+
     for i in sample_indices:
         assert isinstance(dataset, Sized)
         if i >= len(dataset):

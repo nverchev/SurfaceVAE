@@ -1,10 +1,9 @@
 """Specification for the configuration files."""
 
-from functools import cached_property
-
 import dataclasses
 import pathlib
 
+from functools import cached_property
 from typing import Any, Annotated, Self
 
 import torch
@@ -275,7 +274,7 @@ class PlottingOptions:
     """Options for plotting and visualization."""
 
     interactive: bool
-    sample_indices: list[PositiveInt]
+    sample_indices: list[PositiveInt] = dataclasses.field(default_factory=list)
     use_train: bool = False
     interpolation_step_factor: float = 0.3
     interpolation_steps: PositiveInt = 4

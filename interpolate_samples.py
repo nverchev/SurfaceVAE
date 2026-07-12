@@ -1,6 +1,8 @@
 """Interpolate latent vectors of test samples and render the generated meshes."""
 
 import logging
+import random
+
 from collections.abc import Sized
 
 import torch
@@ -30,6 +32,9 @@ def interpolate_samples() -> None:
     class_names = dataset.class_names
     faces = dataset.faces
     sample_indices = cfg_user.plot.sample_indices
+    if not sample_indices:
+        assert isinstance(dataset, Sized)
+        sample_indices = [random.randint(0, len(dataset) - 1)]
 
     if vae_module.use_mean_shape:
         decoder_mean_shape = vae_module.normalize_sample(vae_module.mean_shape)

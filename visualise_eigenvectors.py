@@ -1,6 +1,9 @@
 """Visualize eigenvectors of Laplacian, Dirac, or PCA for PointNet baseline."""
 
 import logging
+import random
+
+from collections.abc import Sized
 
 import numpy as np
 import scipy.sparse as sparse
@@ -76,6 +79,10 @@ def visualise_eigenvectors() -> None:
 
     faces = dataset.faces
     sample_indices = cfg_user.plot.sample_indices
+    if not sample_indices:
+        assert isinstance(dataset, Sized)
+        sample_indices = [random.randint(0, len(dataset) - 1)]
+
     operator_type = cfg.model.operator
     num_evs = cfg_user.plot.num_eigenvectors
     if operator_type == ModelOperators.none:
