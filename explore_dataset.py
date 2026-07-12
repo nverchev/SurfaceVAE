@@ -30,7 +30,7 @@ def explore_dataset() -> None:
     sample_indices = cfg_user.plot.sample_indices
     if not sample_indices:
         assert isinstance(dataset, Sized)
-        sample_indices = [random.randint(0, len(dataset) - 1)]
+        sample_indices = random.sample(range(len(dataset)), min(16, len(dataset)))
 
     for i in sample_indices:
         assert isinstance(dataset, Sized)
