@@ -1,17 +1,13 @@
 """Base / Abstract VAE class: BaseVAE and getters."""
 
-from typing import cast
-
 import math
 import torch
 import torch.nn as nn
-import scipy.sparse as sparse
 
 from src.config import Experiment, ModelOperators
-from src.data import get_active_dataset, Input, Output, build_operator
+from src.data import Input, Output
 from src.module.encoder import get_encoder
 from src.module.decoder import get_decoder
-from src.utils.sparse import scipy_sparse_to_pytorch_sparse
 
 
 class BaseVAE(nn.Module):
@@ -183,36 +179,6 @@ class BaseVAE(nn.Module):
             return operator * self.mean_shape_std
 
         return operator
-
-
-def compute_operators_on_the_fly(
-    x: torch.Tensor, operator_type: ModelOperators
-) -> tuple[torch.Tensor, torch.Tensor]:
-    batch_size = x.size(0)
-    faces = get_active_dataset().faces
-    computed_ops = []
-    computed_adjs = []
-    x_cpu = x.detach().cpu()
-    for i in range(batch_size):
-        v_np = x_cpu[i].numpy()
-        op, op_adj = build_operator((v_np, faces), operator_type)
-        computed_ops.append(op)
-        if op_adj is not None:
-            computed_adjs.append(op_adj)
-
-    operator_scipy = cast(sparse.coo_matrix, sparse.block_diag(computed_ops).tocoo())
-    operator = scipy_sparse_to_pytorch_sparse(operator_scipy).to(x.device)
-    if computed_adjs:
-        operator_adjoint_scipy = cast(
-            sparse.coo_matrix, sparse.block_diag(computed_adjs).tocoo()
-        )
-        operator_adjoint = scipy_sparse_to_pytorch_sparse(operator_adjoint_scipy).to(
-            x.device
-        )
-    else:
-        operator_adjoint = torch.empty(0, device=x.device)
-
-    return operator, operator_adjoint
 
 
 def get_vae_module(

@@ -6,7 +6,7 @@ seed: 42
 cpu: false
 n_workers: 0
 n_subprocesses: 0
-on_the_fly: false
+lazy_load: true
 checkpoint_every: 100
 load_checkpoint: 0
 

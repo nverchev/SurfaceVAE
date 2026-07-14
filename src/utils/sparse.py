@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import enum
+import pathlib
 from collections.abc import Sequence
 from typing import overload
 
@@ -21,6 +22,45 @@ class SparseKeys(enum.StrEnum):
     COL = "col"
     DATA = "data"
     SHAPE = "shape"
+
+
+class LazyH5SparseTensors(Sequence[torch.Tensor]):
+    """Memory-efficient lazy sequence of sparse tensors read from HDF5 on demand."""
+
+    def __init__(self, h5_path: str | pathlib.Path, group_path: str) -> None:
+        self.h5_path = h5_path
+        self.group_path = group_path
+        with h5py.File(self.h5_path, "r") as f:
+            group = get_h5_group(f, self.group_path)
+            row = get_h5_dataset(group, SparseKeys.ROW)[:]
+            col = get_h5_dataset(group, SparseKeys.COL)[:]
+            self.shape = torch.Size(tuple(get_h5_dataset(group, SparseKeys.SHAPE)[:]))
+            self.indices = torch.stack(
+                [torch.from_numpy(row).long(), torch.from_numpy(col).long()], dim=0
+            )
+            self._length = get_h5_dataset(group, SparseKeys.DATA).shape[0]
+        return
+
+    def __len__(self) -> int:
+        return self._length
+
+    @overload
+    def __getitem__(self, index: int) -> torch.Tensor: ...
+
+    @overload
+    def __getitem__(self, index: slice) -> Sequence[torch.Tensor]: ...
+
+    def __getitem__(self, index: int | slice) -> torch.Tensor | Sequence[torch.Tensor]:
+        if isinstance(index, slice):
+            start, stop, step = index.indices(self._length)
+            return [self[i] for i in range(start, stop, step)]
+
+        with h5py.File(self.h5_path, "r") as f:
+            group = get_h5_group(f, self.group_path)
+            data_slice = get_h5_dataset(group, SparseKeys.DATA)[index]
+            values = torch.from_numpy(data_slice).float()
+
+        return torch.sparse_coo_tensor(self.indices, values, self.shape)
 
 
 class PreloadedSparseTensors(Sequence[torch.Tensor]):

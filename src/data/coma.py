@@ -32,6 +32,7 @@ from src.utils.sparse import (
     is_sparse_matrix_group_valid,
     load_sparse_matrix_as_pytorch,
     save_sparse_matrix_to_h5,
+    LazyH5SparseTensors,
     load_sparse_matrices_as_pytorch_preloaded,
     create_incremental_sparse_dataset,
     concat_operators,
@@ -76,8 +77,8 @@ class BaseCOMAData(metaclass=Singleton):
     def __init__(self) -> None:
         cfg = Experiment.get_config()
         self.coma_dir = cfg.user.path.data_dir / self.folder
-        self.on_the_fly = cfg.user.on_the_fly
         self.operator_type = cfg.model.operator
+        self.lazy_load = cfg.user.lazy_load
         self._setup_attributes(cfg)
         self.h5_path = self._get_h5_path()
         self.class_names = sorted([d.name for d in self.coma_dir.glob("FaceTalk_*")])
@@ -259,9 +260,7 @@ class BaseCOMAData(metaclass=Singleton):
             if operator_is_constant
             else f"{partition.name}/{H5Keys.OPERATORS}/{self.operator_type.name}"
         )
-        should_compute_on_the_fly = not operator_is_constant and self.on_the_fly
-
-        if not should_compute_on_the_fly and self.operator_type != ModelOperators.none:
+        if self.operator_type != ModelOperators.none:
             with h5py.File(self.h5_path, "a") as f:
                 if not is_sparse_matrix_group_valid(f, group_name):
                     if group_name in f:
@@ -280,28 +279,29 @@ class BaseCOMAData(metaclass=Singleton):
             if self.operator_type == ModelOperators.none:
                 return vertices, faces, None, None, labels
 
-            if should_compute_on_the_fly:
-                operator = None
-            elif operator_is_constant:
+            if operator_is_constant:
                 op_const = load_sparse_matrix_as_pytorch(get_h5_group(f, group_name))
                 operator = [op_const] * vertices.shape[0]
+            elif self.lazy_load:
+                operator = LazyH5SparseTensors(self.h5_path, group_name)
             else:
                 operator = load_sparse_matrices_as_pytorch_preloaded(
                     get_h5_group(f, group_name)
                 )
 
-            if should_compute_on_the_fly:
-                adjoint_operator = None
-            elif self.operator_type == ModelOperators.dirac_graph_norm:
+            if self.operator_type == ModelOperators.dirac_graph_norm:
                 adjoint_operator = [op_const.T] * vertices.shape[0]
             elif self.operator_type in (
                 ModelOperators.dirac_norm,
                 ModelOperators.dirac,
             ):
                 adj_name = f"{partition.name}/{H5Keys.OPERATORS_ADJOINT}/{self.operator_type.name}"
-                adjoint_operator = load_sparse_matrices_as_pytorch_preloaded(
-                    get_h5_group(f, adj_name)
-                )
+                if self.lazy_load:
+                    adjoint_operator = LazyH5SparseTensors(self.h5_path, adj_name)
+                else:
+                    adjoint_operator = load_sparse_matrices_as_pytorch_preloaded(
+                        get_h5_group(f, adj_name)
+                    )
             else:
                 adjoint_operator = None
 

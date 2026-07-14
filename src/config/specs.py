@@ -316,7 +316,7 @@ class UserSettings:
     checkpoint_every: PositiveInt
     plot: PlottingOptions
     generate: GenerationOptions
-    on_the_fly: bool = False
+    lazy_load: bool = True
     load_checkpoint: int = 0
     n_subprocesses: PositiveInt = 0
     hydra = HydraSettings()
