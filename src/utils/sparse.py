@@ -39,7 +39,18 @@ class LazyH5SparseTensors(Sequence[torch.Tensor]):
                 [torch.from_numpy(row).long(), torch.from_numpy(col).long()], dim=0
             )
             self._length = get_h5_dataset(group, SparseKeys.DATA).shape[0]
+        self._f = None
+        self._pid = None
         return
+
+    def _get_file_handle(self) -> h5py.File:
+        import os
+
+        current_pid = os.getpid()
+        if self._f is None or self._pid != current_pid:
+            self._f = h5py.File(self.h5_path, "r")
+            self._pid = current_pid
+        return self._f
 
     def __len__(self) -> int:
         return self._length
@@ -55,10 +66,10 @@ class LazyH5SparseTensors(Sequence[torch.Tensor]):
             start, stop, step = index.indices(self._length)
             return [self[i] for i in range(start, stop, step)]
 
-        with h5py.File(self.h5_path, "r") as f:
-            group = get_h5_group(f, self.group_path)
-            data_slice = get_h5_dataset(group, SparseKeys.DATA)[index]
-            values = torch.from_numpy(data_slice).float()
+        f = self._get_file_handle()
+        group = get_h5_group(f, self.group_path)
+        data_slice = get_h5_dataset(group, SparseKeys.DATA)[index]
+        values = torch.from_numpy(data_slice).float()
 
         return torch.sparse_coo_tensor(self.indices, values, self.shape)
 
