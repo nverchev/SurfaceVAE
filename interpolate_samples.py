@@ -83,7 +83,8 @@ def interpolate_samples() -> None:
                     vae_module.denormalize_sample(recon_mu).squeeze(0).cpu().numpy()
                 )
                 render_mesh(
-                    ((recon_vertices, faces),),
+                    recon_vertices,
+                    faces,
                     title=f"{label_name}_interpolate_dim{d}_step{j}",
                     interactive=interactive,
                     save_dir=save_dir,

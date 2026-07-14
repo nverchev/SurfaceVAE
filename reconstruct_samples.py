@@ -71,13 +71,15 @@ def reconstruct_samples() -> None:
         save_dir = save_dir_base / f"sample_{i}"
         save_dir.mkdir(parents=True, exist_ok=True)
         render_mesh(
-            ((original_vertices, faces),),
+            original_vertices,
+            faces,
             title=f"{label_name}_original",
             interactive=interactive,
             save_dir=save_dir,
         )
         render_mesh(
-            ((recon_vertices, faces),),
+            recon_vertices,
+            faces,
             title=f"{label_name}_reconstructed",
             interactive=interactive,
             save_dir=save_dir,
@@ -85,7 +87,8 @@ def reconstruct_samples() -> None:
         errors = np.linalg.norm(original_vertices - recon_vertices, axis=-1) * 1000.0
         errors = np.clip(errors, 0.0, ERROR_THRESHOLD)
         render_mesh(
-            ((original_vertices, faces),),
+            original_vertices,
+            faces,
             interactive=interactive,
             title=f"{label_name}_comparison",
             save_dir=save_dir,

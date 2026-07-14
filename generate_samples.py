@@ -27,7 +27,8 @@ def generate_samples() -> None:
         shape = generated_shapes[i].cpu().numpy()
         logging.info("  Rendering generated sample %d", i)
         render_mesh(
-            ((shape, faces),),
+            shape,
+            faces,
             title=f"generated_sample_{i}",
             interactive=interactive,
             save_dir=save_dir,

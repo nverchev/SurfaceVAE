@@ -112,7 +112,8 @@ def visualise_eigenvectors() -> None:
             save_dir = save_dir_base / f"sample_{i}"
             save_dir.mkdir(parents=True, exist_ok=True)
             render_mesh(
-                ((vertices, faces),),
+                vertices,
+                faces,
                 title="original",
                 interactive=interactive,
                 save_dir=save_dir,
@@ -121,7 +122,8 @@ def visualise_eigenvectors() -> None:
                 comp = pca.components_[ev_idx].reshape(-1, 3)
                 scalars = vec3_to_rgb(comp)
                 render_mesh(
-                    ((vertices, faces),),
+                    vertices,
+                    faces,
                     title=f"eigenvector_{ev_idx + 1}",
                     interactive=interactive,
                     save_dir=save_dir,
@@ -141,7 +143,8 @@ def visualise_eigenvectors() -> None:
             save_dir = save_dir_base / f"sample_{i}"
             save_dir.mkdir(parents=True, exist_ok=True)
             render_mesh(
-                ((vertices, faces),),
+                vertices,
+                faces,
                 title="original",
                 interactive=interactive,
                 save_dir=save_dir,
@@ -214,7 +217,8 @@ def visualise_eigenvectors() -> None:
                     ev_reshaped = ev.reshape(-1, 4)
                     scalars = vec3_to_rgb(ev_reshaped[:, 1:])
                     render_mesh(
-                        ((vertices, faces),),
+                        vertices,
+                        faces,
                         title=f"eigenvector_{ev_idx + 1}",
                         interactive=interactive,
                         save_dir=save_dir,
@@ -229,7 +233,8 @@ def visualise_eigenvectors() -> None:
                     title = f"eigenvector_{ev_idx + 1}"
 
                 render_mesh(
-                    ((vertices, faces),),
+                    vertices,
+                    faces,
                     title=title,
                     interactive=interactive,
                     save_dir=save_dir,

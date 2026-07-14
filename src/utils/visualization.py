@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 from numpy import typing as npt
 
-TERRACOTTA = np.array([0.75, 0.45, 0.35])
+BONE = np.array([0.89, 0.855, 0.788])
+
+Color = str | Sequence[float] | npt.NDArray[Any]
 
 
 if TYPE_CHECKING:
@@ -17,8 +19,9 @@ else:
 
 
 def render_mesh(
-    meshes: Sequence[tuple[npt.NDArray[Any], npt.NDArray[Any]]],
-    color: str | Sequence[float] | Sequence[str | Sequence[float]] | None = None,
+    vertices: npt.NDArray[Any] | Sequence[npt.NDArray[Any]],
+    faces: npt.NDArray[Any],
+    color: Color = BONE,
     interactive: bool = True,
     title: str = "Mesh",
     save_dir: pathlib.Path = pathlib.Path() / "images",
@@ -29,7 +32,7 @@ def render_mesh(
     show_edges: bool = False,
     use_edl: bool = False,
 ) -> None:
-    """Renders a sequence of meshes using PyVista."""
+    """Renders a sequence of meshes sharing the same topology (faces) using PyVista."""
     try:
         import pyvista as pv
         import vtk
@@ -50,7 +53,12 @@ def render_mesh(
         notebook=False,
         off_screen=not interactive,
     )
-    all_verts = np.concatenate([m[0] for m in meshes if len(m[0]) > 0], axis=0)
+    if isinstance(vertices, np.ndarray) and vertices.ndim == 2:
+        vertices_seq = [vertices]
+    else:
+        vertices_seq = vertices
+
+    all_verts = np.concatenate([v for v in vertices_seq if len(v) > 0], axis=0)
     if len(all_verts) > 0:
         min_v = all_verts.min(axis=0)
         max_v = all_verts.max(axis=0)
@@ -84,26 +92,14 @@ def render_mesh(
         )
         plotter.add_light(back_light)
 
-    for i, (vertices, faces) in enumerate(meshes):
-        if not len(vertices):
+    pyvista_faces = np.insert(faces, 0, 3, axis=1).ravel()
+
+    for i, v_raw in enumerate(vertices_seq):
+        v = np.asarray(v_raw)
+        if not len(v):
             continue
 
-        if color is None:
-            mesh_color: Any = TERRACOTTA
-        elif isinstance(color, str):
-            mesh_color = color
-        elif isinstance(color, Sequence) and not isinstance(
-            color[0], (int, float, np.integer, np.floating)
-        ):
-            mesh_color = color[i % len(color)]
-        else:
-            mesh_color = color
-
-        num_faces = faces.shape[0]
-        pyvista_faces = np.column_stack(
-            [np.full(num_faces, 3, dtype=np.int32), faces]
-        ).flatten()
-        mesh_pv = pv.PolyData(vertices[:, :3], pyvista_faces)
+        mesh_pv = pv.PolyData(v[:, :3], pyvista_faces)
         if i == 0 and scalars is not None:
             mesh_pv.point_data["scalars"] = scalars
             is_rgb = scalars.ndim == 2 and scalars.shape[1] == 3
@@ -132,7 +128,7 @@ def render_mesh(
         else:
             plotter.add_mesh(
                 mesh_pv,
-                color=mesh_color,
+                color=color,
                 smooth_shading=True,
                 show_edges=show_edges,
                 edge_color="black",

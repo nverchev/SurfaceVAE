@@ -19,7 +19,8 @@ def plot_dataset_mean() -> None:
     save_dir.mkdir(parents=True, exist_ok=True)
     logging.info("Rendering dataset mean shape...")
     render_mesh(
-        ((mean_shape, faces),),
+        mean_shape,
+        faces,
         title="dataset_mean_shape",
         interactive=interactive,
         save_dir=save_dir,

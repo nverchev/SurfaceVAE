@@ -69,7 +69,8 @@ def tour_latent_space() -> None:
                 n_steps_per_plane,
             )
             render_mesh(
-                ((recon_vertices, faces),),
+                recon_vertices,
+                faces,
                 title=f"tour_step_{global_step:03d}",
                 interactive=interactive,
                 save_dir=save_dir,

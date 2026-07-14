@@ -47,7 +47,8 @@ def explore_dataset() -> None:
         save_dir.mkdir(parents=True, exist_ok=True)
         vertices = inputs.x.numpy()
         render_mesh(
-            ((vertices, faces),),
+            vertices,
+            faces,
             title=f"{label_name}_mesh",
             interactive=interactive,
             save_dir=save_dir,
