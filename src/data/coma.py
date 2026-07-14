@@ -11,6 +11,8 @@ import abc
 import enum
 import gc
 import os
+
+os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 import pathlib
 
 from typing import Any, ClassVar
@@ -261,8 +263,12 @@ class BaseCOMAData(metaclass=Singleton):
             else f"{partition.name}/{H5Keys.OPERATORS}/{self.operator_type.name}"
         )
         if self.operator_type != ModelOperators.none:
-            with h5py.File(self.h5_path, "a") as f:
-                if not is_sparse_matrix_group_valid(f, group_name):
+            is_valid = False
+            with h5py.File(self.h5_path, "r") as f:
+                is_valid = is_sparse_matrix_group_valid(f, group_name)
+
+            if not is_valid:
+                with h5py.File(self.h5_path, "a") as f:
                     if group_name in f:
                         del f[group_name]
 
