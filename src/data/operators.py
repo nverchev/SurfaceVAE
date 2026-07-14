@@ -1,7 +1,5 @@
 """Vectorized preprocessing functions for building fixed graph operators."""
 
-from typing import cast
-
 import numpy as np
 import scipy.sparse as sparse
 
@@ -415,9 +413,16 @@ def build_dirac_graph_norm(
     adjacency_matrix = compute_adjacency_matrix(faces, n_vertices)
     degree_inv_sqrt_matrix = compute_degree_inv_sqrt_matrix(adjacency_matrix)
     Di_comb = compute_graph_dirac(faces, n_vertices)
-    D_deg_block = sparse.kron(degree_inv_sqrt_matrix, sparse.eye(4))
-    Di_graph_norm = cast(sparse.coo_matrix, Di_comb @ D_deg_block).tocoo()
-    DiA_graph_norm = cast(sparse.coo_matrix, D_deg_block @ Di_comb.T).tocoo()
+    degree_inv_sqrt_diag = degree_inv_sqrt_matrix.diagonal()
+    Di_graph_norm_data = Di_comb.data * degree_inv_sqrt_diag[Di_comb.col // 4]
+    Di_graph_norm = sparse.coo_matrix(
+        (Di_graph_norm_data, (Di_comb.row, Di_comb.col)), shape=Di_comb.shape
+    )
+    Di_comb_T = Di_comb.T.tocoo()
+    DiA_graph_norm_data = degree_inv_sqrt_diag[Di_comb_T.row // 4] * Di_comb_T.data
+    DiA_graph_norm = sparse.coo_matrix(
+        (DiA_graph_norm_data, (Di_comb_T.row, Di_comb_T.col)), shape=Di_comb_T.shape
+    )
     return Di_graph_norm, DiA_graph_norm
 
 
@@ -432,10 +437,10 @@ def build_dirac_norm(
     inv_sqrt_areas = np.zeros_like(vertex_dual_areas)
     mask = vertex_dual_areas > 0
     inv_sqrt_areas[mask] = 1.0 / np.sqrt(vertex_dual_areas[mask])
-    inv_sqrt_diag = sparse.diags(inv_sqrt_areas, 0)
-    inv_sqrt_block = sparse.kron(inv_sqrt_diag, sparse.eye(4))
-    Di_norm = cast(sparse.coo_matrix, Di @ inv_sqrt_block).tocoo()
-    DiA_norm = cast(sparse.coo_matrix, inv_sqrt_block @ DiA).tocoo()
+    Di_norm_data = Di.data * inv_sqrt_areas[Di.col // 4]
+    Di_norm = sparse.coo_matrix((Di_norm_data, (Di.row, Di.col)), shape=Di.shape)
+    DiA_norm_data = inv_sqrt_areas[DiA.row // 4] * DiA.data
+    DiA_norm = sparse.coo_matrix((DiA_norm_data, (DiA.row, DiA.col)), shape=DiA.shape)
     return Di_norm, DiA_norm
 
 
