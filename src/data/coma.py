@@ -9,9 +9,12 @@ A typical PLY path format is:
 
 import abc
 import enum
+import gc
+import os
 import pathlib
 
 from typing import Any, ClassVar
+from collections.abc import Sequence
 
 import h5py
 import numpy as np
@@ -27,10 +30,11 @@ from src.utils.sparse import (
     get_h5_dataset,
     get_h5_group,
     is_sparse_matrix_group_valid,
-    load_sparse_matrices_as_pytorch,
     load_sparse_matrix_as_pytorch,
-    save_sparse_matrices_to_h5,
     save_sparse_matrix_to_h5,
+    load_sparse_matrices_as_pytorch_preloaded,
+    create_incremental_sparse_dataset,
+    concat_operators,
 )
 
 N_VERTICES = 5023
@@ -122,7 +126,7 @@ class BaseCOMAData(metaclass=Singleton):
                 ):
                     operator = [train_op[0]] * (len(train_op) + len(val_op))
                 else:
-                    operator = train_op + val_op
+                    operator = concat_operators(train_op, val_op)
             else:
                 operator = None
 
@@ -137,7 +141,7 @@ class BaseCOMAData(metaclass=Singleton):
                         len(train_op_adj) + len(val_op_adj)
                     )
                 else:
-                    adjoint_operator = train_op_adj + val_op_adj
+                    adjoint_operator = concat_operators(train_op_adj, val_op_adj)
             else:
                 adjoint_operator = None
 
@@ -156,10 +160,11 @@ class BaseCOMAData(metaclass=Singleton):
         )
 
     def _compute_constant_operator(self, faces: np.ndarray, f: h5py.File) -> None:
-        train_shapes = get_h5_dataset(f, f"{Partitions.train.name}/{H5Keys.VERTICES}")[
-            :
-        ]
-        op, _ = operators.build_operator((train_shapes[0], faces), self.operator_type)
+        train_shapes_dataset = get_h5_dataset(
+            f, f"{Partitions.train.name}/{H5Keys.VERTICES}"
+        )
+        first_shape = train_shapes_dataset[0]
+        op, _ = operators.build_operator((first_shape, faces), self.operator_type)
         op_grp = f.create_group(self.operator_type.name)
         if op is not None:
             save_sparse_matrix_to_h5(op_grp, op)
@@ -169,28 +174,49 @@ class BaseCOMAData(metaclass=Singleton):
     def _compute_group_operators(
         self, partition: Partitions, faces: np.ndarray, f: h5py.File
     ) -> None:
-        s_data = get_h5_dataset(f, f"{partition.name}/{H5Keys.VERTICES}")[:]
-        op_list = []
-        op_adj_list = []
-        for shape in tqdm(
-            s_data, desc=f"Computing {self.operator_type.name} for {partition.name}"
-        ):
-            op, op_adj = operators.build_operator((shape, faces), self.operator_type)
-            if op is not None:
-                op_list.append(op)
+        s_data = get_h5_dataset(f, f"{partition.name}/{H5Keys.VERTICES}")
+        n_matrices = len(s_data)
+        if n_matrices == 0:
+            return
 
-            if op_adj is not None:
-                op_adj_list.append(op_adj)
-
-        op_grp = f.create_group(
-            f"{partition.name}/{H5Keys.OPERATORS}/{self.operator_type.name}"
+        op_0, op_adj_0 = operators.build_operator(
+            (s_data[0], faces), self.operator_type
         )
-        save_sparse_matrices_to_h5(op_grp, op_list)
-        if op_adj_list:
+        if op_0 is not None:
+            op_grp = f.create_group(
+                f"{partition.name}/{H5Keys.OPERATORS}/{self.operator_type.name}"
+            )
+            ds_data = create_incremental_sparse_dataset(op_grp, op_0, n_matrices)
+        else:
+            ds_data = None
+
+        if op_adj_0 is not None:
             op_adj_grp = f.create_group(
                 f"{partition.name}/{H5Keys.OPERATORS_ADJOINT}/{self.operator_type.name}"
             )
-            save_sparse_matrices_to_h5(op_adj_grp, op_adj_list)
+            ds_adj_data = create_incremental_sparse_dataset(
+                op_adj_grp, op_adj_0, n_matrices
+            )
+        else:
+            ds_adj_data = None
+
+        for idx in tqdm(
+            range(1, n_matrices),
+            desc=f"Computing {self.operator_type.name} for {partition.name}",
+        ):
+            shape = s_data[idx]
+            op, op_adj = operators.build_operator((shape, faces), self.operator_type)
+            if op is not None and ds_data is not None:
+                ds_data[idx] = op.data
+
+            if op_adj is not None and ds_adj_data is not None:
+                ds_adj_data[idx] = op_adj.data
+
+            del op, op_adj
+            if idx % 200 == 0:
+                f.flush()
+                os.sync()
+                gc.collect()
 
         return
 
@@ -219,8 +245,8 @@ class BaseCOMAData(metaclass=Singleton):
     ) -> tuple[
         np.ndarray,
         np.ndarray,
-        list[torch.Tensor] | None,
-        list[torch.Tensor] | None,
+        Sequence[torch.Tensor] | None,
+        Sequence[torch.Tensor] | None,
         np.ndarray,
     ]:
         """Load vertices, faces, operators, and adjoint operators from the HDF5 archive."""
@@ -260,7 +286,9 @@ class BaseCOMAData(metaclass=Singleton):
                 op_const = load_sparse_matrix_as_pytorch(get_h5_group(f, group_name))
                 operator = [op_const] * vertices.shape[0]
             else:
-                operator = load_sparse_matrices_as_pytorch(get_h5_group(f, group_name))
+                operator = load_sparse_matrices_as_pytorch_preloaded(
+                    get_h5_group(f, group_name)
+                )
 
             if should_compute_on_the_fly:
                 adjoint_operator = None
@@ -271,7 +299,7 @@ class BaseCOMAData(metaclass=Singleton):
                 ModelOperators.dirac,
             ):
                 adj_name = f"{partition.name}/{H5Keys.OPERATORS_ADJOINT}/{self.operator_type.name}"
-                adjoint_operator = load_sparse_matrices_as_pytorch(
+                adjoint_operator = load_sparse_matrices_as_pytorch_preloaded(
                     get_h5_group(f, adj_name)
                 )
             else:

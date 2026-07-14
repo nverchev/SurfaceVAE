@@ -1,6 +1,10 @@
 """Sparse matrix utilities."""
 
+from __future__ import annotations
+
 import enum
+from collections.abc import Sequence
+from typing import overload
 
 import h5py
 import numpy as np
@@ -19,6 +23,73 @@ class SparseKeys(enum.StrEnum):
     SHAPE = "shape"
 
 
+class PreloadedSparseTensors(Sequence[torch.Tensor]):
+    """Memory-efficient preloaded sequence of sparse tensors sharing indices."""
+
+    def __init__(
+        self, indices: torch.Tensor, values: torch.Tensor, shape: torch.Size
+    ) -> None:
+        self.indices = indices
+        self.values = values
+        self.shape = shape
+        return
+
+    def __len__(self) -> int:
+        return self.values.shape[0]
+
+    @overload
+    def __getitem__(self, index: int) -> torch.Tensor: ...
+
+    @overload
+    def __getitem__(self, index: slice) -> PreloadedSparseTensors: ...
+
+    def __getitem__(self, index: int | slice) -> torch.Tensor | PreloadedSparseTensors:
+        if isinstance(index, slice):
+            sliced_values = self.values[index]
+            return PreloadedSparseTensors(self.indices, sliced_values, self.shape)
+
+        return torch.sparse_coo_tensor(self.indices, self.values[index], self.shape)
+
+
+class CombinedSparseTensors(Sequence[torch.Tensor]):
+    """Sequence that lazily concatenates multiple sequences of sparse tensors."""
+
+    def __init__(self, sequences: list[Sequence[torch.Tensor]]) -> None:
+        self.sequences = sequences
+        self._lengths = [len(seq) for seq in sequences]
+        self._total_len = sum(self._lengths)
+        return
+
+    def __len__(self) -> int:
+        return self._total_len
+
+    @overload
+    def __getitem__(self, index: int) -> torch.Tensor: ...
+
+    @overload
+    def __getitem__(self, index: slice) -> Sequence[torch.Tensor]: ...
+
+    def __getitem__(self, index: int | slice) -> torch.Tensor | Sequence[torch.Tensor]:
+        if isinstance(index, slice):
+            start, stop, step = index.indices(self._total_len)
+            return [self[i] for i in range(start, stop, step)]
+
+        if index < 0:
+            index += self._total_len
+
+        if index < 0 or index >= self._total_len:
+            raise IndexError("Index out of range")
+
+        curr_idx = index
+        for seq, length in zip(self.sequences, self._lengths):
+            if curr_idx < length:
+                return seq[curr_idx]
+
+            curr_idx -= length
+
+        raise IndexError("Index out of range")
+
+
 def scipy_sparse_to_pytorch_sparse(
     sparse_matrix: sparse.coo_matrix,
 ) -> torch.Tensor:
@@ -30,26 +101,6 @@ def scipy_sparse_to_pytorch_sparse(
     values_tensor = torch.FloatTensor(values)
     assert coo.shape is not None
     return torch.sparse_coo_tensor(indices_tensor, values_tensor, torch.Size(coo.shape))
-
-
-def torch_block_diag_repeat(mat: torch.Tensor, B: int) -> torch.Tensor:
-    if B == 1:
-        return mat
-
-    mat = mat.coalesce()
-    indices = mat.indices()
-    values = mat.values()
-    shape = mat.size()
-    new_values = values.repeat(B)
-    row_offset = torch.arange(B, device=mat.device) * shape[0]
-    col_offset = torch.arange(B, device=mat.device) * shape[1]
-    offset_row = row_offset.unsqueeze(1).repeat(1, indices.size(1))
-    offset_col = col_offset.unsqueeze(1).repeat(1, indices.size(1))
-    offsets = torch.stack([offset_row, offset_col], dim=0)
-    new_indices = indices.unsqueeze(1).repeat(1, B, 1) + offsets
-    new_indices = new_indices.reshape(2, -1)
-    new_size = (B * shape[0], B * shape[1])
-    return torch.sparse_coo_tensor(new_indices, new_values, new_size)
 
 
 def torch_sparse_block_diag(tensors: list[torch.Tensor]) -> torch.Tensor:
@@ -94,25 +145,6 @@ def save_sparse_matrix_to_h5(
     return
 
 
-def save_sparse_matrices_to_h5(
-    group: h5py.Group,
-    op_list: list[sparse.coo_matrix],
-) -> None:
-    """Save a list of sparse COO matrices (with identical sparsity pattern) to an HDF5 group."""
-    group.create_dataset(SparseKeys.ROW, data=op_list[0].row)
-    group.create_dataset(SparseKeys.COL, data=op_list[0].col)
-    n_matrices = len(op_list)
-    nnz = len(op_list[0].data)
-    ds = group.create_dataset(
-        SparseKeys.DATA, shape=(n_matrices, nnz), dtype=np.float32
-    )
-    for idx, o in enumerate(op_list):
-        ds[idx] = o.data
-
-    group.create_dataset(SparseKeys.SHAPE, data=np.array(op_list[0].shape))
-    return
-
-
 def get_h5_dataset(group: h5py.Group, key: str) -> h5py.Dataset:
     ds = group[key]
     assert isinstance(ds, h5py.Dataset)
@@ -123,24 +155,6 @@ def get_h5_group(group: h5py.Group, key: str) -> h5py.Group:
     grp = group[key]
     assert isinstance(grp, h5py.Group)
     return grp
-
-
-def load_sparse_matrix_from_h5(group: h5py.Group) -> sparse.coo_matrix:
-    """Load a single sparse COO matrix from an HDF5 group."""
-    row = get_h5_dataset(group, SparseKeys.ROW)[:]
-    col = get_h5_dataset(group, SparseKeys.COL)[:]
-    data = get_h5_dataset(group, SparseKeys.DATA)[:]
-    shape = tuple(get_h5_dataset(group, SparseKeys.SHAPE)[:])
-    return sparse.coo_matrix((data, (row, col)), shape=shape)
-
-
-def load_sparse_matrices_from_h5(group: h5py.Group) -> list[sparse.coo_matrix]:
-    """Load a list of sparse COO matrices from an HDF5 group."""
-    row = get_h5_dataset(group, SparseKeys.ROW)[:]
-    col = get_h5_dataset(group, SparseKeys.COL)[:]
-    data = get_h5_dataset(group, SparseKeys.DATA)[:]
-    shape = tuple(get_h5_dataset(group, SparseKeys.SHAPE)[:])
-    return [sparse.coo_matrix((d, (row, col)), shape=shape) for d in data]
 
 
 def load_sparse_matrix_as_pytorch(group: h5py.Group) -> torch.Tensor:
@@ -156,19 +170,6 @@ def load_sparse_matrix_as_pytorch(group: h5py.Group) -> torch.Tensor:
     return torch.sparse_coo_tensor(indices, values, torch.Size(shape))
 
 
-def load_sparse_matrices_as_pytorch(group: h5py.Group) -> list[torch.Tensor]:
-    """Load a list of sparse COO matrices directly as a list of PyTorch sparse COO tensors."""
-    row = get_h5_dataset(group, SparseKeys.ROW)[:]
-    col = get_h5_dataset(group, SparseKeys.COL)[:]
-    data = get_h5_dataset(group, SparseKeys.DATA)[:]
-    shape = tuple(get_h5_dataset(group, SparseKeys.SHAPE)[:])
-    indices = torch.stack(
-        [torch.from_numpy(row).long(), torch.from_numpy(col).long()], dim=0
-    )
-    values = torch.from_numpy(data).float()
-    return [torch.sparse_coo_tensor(indices, val, torch.Size(shape)) for val in values]
-
-
 def is_sparse_matrix_group_valid(f: h5py.File, group_name: str) -> bool:
     """Return True only if the group exists and contains the expected datasets."""
     if group_name not in f:
@@ -179,3 +180,57 @@ def is_sparse_matrix_group_valid(f: h5py.File, group_name: str) -> bool:
         return False
 
     return all(key.value in group for key in SparseKeys)
+
+
+def load_sparse_matrices_as_pytorch_preloaded(
+    group: h5py.Group,
+) -> PreloadedSparseTensors:
+    """Load a list of sparse COO matrices using a memory-efficient preloaded wrapper."""
+    row = get_h5_dataset(group, SparseKeys.ROW)[:]
+    col = get_h5_dataset(group, SparseKeys.COL)[:]
+    data = get_h5_dataset(group, SparseKeys.DATA)[:]
+    shape = tuple(get_h5_dataset(group, SparseKeys.SHAPE)[:])
+    indices = torch.stack(
+        [torch.from_numpy(row).long(), torch.from_numpy(col).long()], dim=0
+    )
+    values = torch.from_numpy(data).float()
+    return PreloadedSparseTensors(indices, values, torch.Size(shape))
+
+
+def create_incremental_sparse_dataset(
+    group: h5py.Group,
+    op: sparse.coo_matrix,
+    n_matrices: int,
+) -> h5py.Dataset:
+    """Initialize datasets for saving sparse matrices incrementally and return the data dataset."""
+    group.create_dataset(SparseKeys.ROW, data=op.row)
+    group.create_dataset(SparseKeys.COL, data=op.col)
+    group.create_dataset(SparseKeys.SHAPE, data=np.array(op.shape))
+    nnz = len(op.data)
+    ds = group.create_dataset(
+        SparseKeys.DATA, shape=(n_matrices, nnz), dtype=np.float32
+    )
+    ds[0] = op.data
+    return ds
+
+
+def concat_operators(
+    seq1: Sequence[torch.Tensor],
+    seq2: Sequence[torch.Tensor],
+) -> Sequence[torch.Tensor]:
+    """Concatenate two operator sequences, supporting lists and custom preloaded sequences."""
+    if isinstance(seq1, list) and isinstance(seq2, list):
+        return seq1 + seq2
+
+    sequences = []
+    if isinstance(seq1, CombinedSparseTensors):
+        sequences.extend(seq1.sequences)
+    else:
+        sequences.append(seq1)
+
+    if isinstance(seq2, CombinedSparseTensors):
+        sequences.extend(seq2.sequences)
+    else:
+        sequences.append(seq2)
+
+    return CombinedSparseTensors(sequences)
