@@ -1,9 +1,19 @@
-"""COMA dataset class definitions and preprocessing logic.
+"""COMA dataset loader.
 
-A typical PLY path format is:
-`<data_dir>/COMA_data/<subject_id>/<expression>/<frame_name>.ply`
-- parts[-1] is the frame name (e.g., `lips_up.000001.ply`)
-- parts[-2] is the expression name (e.g., `lips_up`)
+Directory structure of raw COMA dataset:
+COMA_data/
+  FaceTalk_170725_00137_TA/
+    ...
+    lips_up/
+      ...
+      00001.ply
+      ...
+    ...
+
+The dataset is structured as:
+- folder/subject/expression/mesh.ply
+- parts[-1] is the mesh name (e.g., `00001.ply`)
+- parts[-2] is the expression (e.g., `lips_up`)
 - parts[-3] is the subject identity (e.g., `FaceTalk_170809_00138_TA`)
 """
 
@@ -87,10 +97,35 @@ class BaseCOMAData(metaclass=Singleton):
         if not self.h5_path.exists():
             self._preprocess_shapes_and_labels()
 
+        if self.operator_type != ModelOperators.none:
+            self._precompute_all_operators()
+
         with h5py.File(self.h5_path, "r") as f:
             self.faces = get_h5_dataset(f, H5Keys.FACES)[:]
 
         return
+
+    def _precompute_all_operators(self) -> None:
+        operator_is_constant = self.operator_type in (
+            ModelOperators.lap_graph_norm,
+            ModelOperators.dirac_graph_norm,
+        )
+        with h5py.File(self.h5_path, "a") as f:
+            faces = get_h5_dataset(f, H5Keys.FACES)[:]
+            for partition in [Partitions.train, Partitions.val, Partitions.test]:
+                group_name = (
+                    self.operator_type.name
+                    if operator_is_constant
+                    else f"{partition.name}/{H5Keys.OPERATORS}/{self.operator_type.name}"
+                )
+                if not is_sparse_matrix_group_valid(f, group_name):
+                    if group_name in f:
+                        del f[group_name]
+
+                    if operator_is_constant:
+                        self._compute_constant_operator(faces, f)
+                    else:
+                        self._compute_group_operators(partition, faces, f)
 
     @classmethod
     def get_faces(cls) -> np.ndarray:
@@ -111,7 +146,7 @@ class BaseCOMAData(metaclass=Singleton):
         """Get path to the HDF5 archive."""
 
     def get_split(self, partition: Partitions) -> COMADatasetSplit:
-        if partition == Partitions.train_val:
+        if partition == Partitions.train_val or partition == Partitions.train_val:
             train_vertices, _, train_op, train_op_adj, train_lbls = self._load_split(
                 Partitions.train,
             )
@@ -262,21 +297,6 @@ class BaseCOMAData(metaclass=Singleton):
             if operator_is_constant
             else f"{partition.name}/{H5Keys.OPERATORS}/{self.operator_type.name}"
         )
-        if self.operator_type != ModelOperators.none:
-            is_valid = False
-            with h5py.File(self.h5_path, "r") as f:
-                is_valid = is_sparse_matrix_group_valid(f, group_name)
-
-            if not is_valid:
-                with h5py.File(self.h5_path, "a") as f:
-                    if group_name in f:
-                        del f[group_name]
-
-                    faces_tmp = get_h5_dataset(f, H5Keys.FACES)[:]
-                    if operator_is_constant:
-                        self._compute_constant_operator(faces_tmp, f)
-                    else:
-                        self._compute_group_operators(partition, faces_tmp, f)
 
         with h5py.File(self.h5_path, "r") as f:
             faces = get_h5_dataset(f, H5Keys.FACES)[:]
