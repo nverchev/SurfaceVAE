@@ -146,7 +146,7 @@ class BaseCOMAData(metaclass=Singleton):
         """Get path to the HDF5 archive."""
 
     def get_split(self, partition: Partitions) -> COMADatasetSplit:
-        if partition == Partitions.train_val or partition == Partitions.train_val:
+        if partition == Partitions.train_val:
             train_vertices, _, train_op, train_op_adj, train_lbls = self._load_split(
                 Partitions.train,
             )
