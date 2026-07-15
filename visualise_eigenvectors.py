@@ -14,6 +14,11 @@ import torch
 from src.config import AllConfig, Experiment, hydra_main
 from src.config.options import ModelOperators
 from src.data import get_active_dataset, build_operator
+from src.data.operators import (
+    build_lap_stiff,
+    compute_mesh_geometry,
+    compute_vertex_dual_areas,
+)
 from src.data.split import Partitions
 from src.utils.visualization import render_mesh
 
@@ -149,14 +154,8 @@ def visualise_eigenvectors() -> None:
                 interactive=interactive,
                 save_dir=save_dir,
             )
-            if operator_type == ModelOperators.lap_beltrami_norm:
-                from src.data.operators import (
-                    build_laplace_beltrami,
-                    compute_mesh_geometry,
-                    compute_vertex_dual_areas,
-                )
-
-                L_cot = build_laplace_beltrami(vertices, faces)
+            if operator_type == ModelOperators.lap_beltrami:
+                L_cot = build_lap_stiff(vertices, faces)
                 _, face_areas = compute_mesh_geometry(vertices, faces)
                 vertex_dual_areas = compute_vertex_dual_areas(
                     faces, face_areas, vertices.shape[0]
@@ -173,7 +172,7 @@ def visualise_eigenvectors() -> None:
                 eigenvectors = D_inv_sqrt_mat @ eigenvectors_sym
             elif operator_type in (
                 ModelOperators.dirac,
-                ModelOperators.dirac_norm,
+                ModelOperators.dirac_stiff,
                 ModelOperators.dirac_graph_norm,
             ):
                 op_data = build_operator((vertices, faces), operator_type)
@@ -211,7 +210,7 @@ def visualise_eigenvectors() -> None:
                 ev = valid_vecs[:, ev_idx]
                 if operator_type in (
                     ModelOperators.dirac,
-                    ModelOperators.dirac_norm,
+                    ModelOperators.dirac_stiff,
                     ModelOperators.dirac_graph_norm,
                 ):
                     ev_reshaped = ev.reshape(-1, 4)

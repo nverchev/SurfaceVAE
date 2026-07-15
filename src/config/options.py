@@ -51,23 +51,23 @@ class ModelOperators(enum.StrEnum):
     none = enum.auto()
     """Pointwise baseline, no operators/graph structure used."""
 
-    lap_beltrami = enum.auto()
-    """Stiffness matrix from cotangent-weighted Laplace-Beltrami operator."""
+    lap_stiff = enum.auto()
+    """Stiffness matrix S from cotangent-weighted Laplace-Beltrami."""
 
-    lap_beltrami_norm = enum.auto()
-    """Area-normalized cotangent-weighted Laplace-Beltrami operator."""
+    lap_beltrami = enum.auto()
+    """Discrete Laplace-Beltrami operator M^{-1}S (mass-normalised cotangent Laplacian)."""
 
     lap_graph_norm = enum.auto()
-    """Symmetric normalized graph Laplacian."""
+    """Symmetric normalised graph Laplacian L_norm = D^{-1/2} L_comb D^{-1/2}."""
 
     dirac = enum.auto()
-    """Continuous coordinate-dependent area-normalized Dirac operator."""
+    """Dirac pair; DiA @ Di = -M^{-1}S (real part)."""
 
-    dirac_norm = enum.auto()
-    """Continuous coordinate-dependent right-normalized Dirac operator."""
+    dirac_stiff = enum.auto()
+    """Dirac pair with D_A^{1/2} row-scaling; DiA_stiff @ Di_stiff = -S (real part)."""
 
     dirac_graph_norm = enum.auto()
-    """Combinatorial/topological unweighted normalized graph Dirac operator."""
+    """Combinatorial Dirac pair; DiA @ Di = -L_norm (real part)."""
 
 
 class LossTypes(enum.StrEnum):

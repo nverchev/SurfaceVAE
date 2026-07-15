@@ -307,9 +307,8 @@ def compute_dirac(
     V: np.ndarray,
     F: np.ndarray,
     face_areas: np.ndarray,
-    normalize: bool = True,
 ) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
-    """Compute the continuous Dirac operators (Di, DiA)."""
+    """Compute the area-normalised continuous Dirac operators (Di, DiA)."""
     n_vertices = V.shape[0]
     n_faces = F.shape[0]
     f2v_rows, f2v_cols, quaternion_mats = compute_dirac_base(V, F)
@@ -320,21 +319,13 @@ def compute_dirac(
     v2f_data = []
     for corner, q_mats in enumerate(quaternion_mats):
         vertex_corner = F[:, corner]
-        if normalize:
-            data_f2v = q_mats / (2 * face_areas[:, None, None])
-        else:
-            data_f2v = q_mats
-
-        f2v_data.append(data_f2v.ravel())
+        f2v_data.append((q_mats / (2 * face_areas[:, None, None])).ravel())
         rows_v2f, cols_v2f = compute_block_indices(vertex_corner, np.arange(n_faces))
-        if normalize:
-            data_v2f = -q_mats / (2 * vertex_dual_areas[vertex_corner, None, None])
-        else:
-            data_v2f = -q_mats
-
+        v2f_data.append(
+            (-q_mats / (2 * vertex_dual_areas[vertex_corner, None, None])).ravel()
+        )
         v2f_rows.append(rows_v2f)
         v2f_cols.append(cols_v2f)
-        v2f_data.append(data_v2f.ravel())
 
     Di = sparse.coo_matrix(
         (
@@ -358,7 +349,7 @@ def compute_dirac(
 # ==============================================================================
 
 
-def buid_dummy_sparse_tensor(
+def build_dummy_sparse_tensor(
     shape: tuple[int, int] | None, nnz: int
 ) -> sparse.coo_matrix | None:
     if shape is not None and nnz > 0:
@@ -379,24 +370,22 @@ def buid_dummy_sparse_tensor(
 def build_normalized_graph_laplacian(
     faces: np.ndarray, n_vertices: int
 ) -> sparse.coo_matrix:
-    """Build the unweighted symmetric normalized graph Laplacian from face connectivity."""
+    """Build the symmetric normalised graph Laplacian L_norm = D^{-1/2} L_graph D^{-1/2}."""
     adjacency_matrix = compute_adjacency_matrix(faces, n_vertices)
     L_unnormalized = compute_laplacian(adjacency_matrix)
     degree_inv_sqrt_matrix = compute_degree_inv_sqrt_matrix(adjacency_matrix)
     return (degree_inv_sqrt_matrix * L_unnormalized * degree_inv_sqrt_matrix).tocoo()
 
 
-def build_laplace_beltrami(V: np.ndarray, F: np.ndarray) -> sparse.coo_matrix:
-    """Build the unnormalized cotangent-weighted Laplace-Beltrami operator."""
+def build_lap_stiff(V: np.ndarray, F: np.ndarray) -> sparse.coo_matrix:
+    """Build the cotangent stiffness matrix S (unnormalized, geometry-dependent)."""
     edge_distances, face_areas = compute_mesh_geometry(V, F)
     W = compute_cotangent_weights(F, face_areas, edge_distances)
     return compute_laplacian(W)
 
 
-def build_laplace_beltrami_normalized(
-    V: np.ndarray, F: np.ndarray
-) -> sparse.coo_matrix:
-    """Build the normalized cotangent-weighted Laplace-Beltrami operator."""
+def build_laplace_beltrami(V: np.ndarray, F: np.ndarray) -> sparse.coo_matrix:
+    """Build the discrete Laplace-Beltrami operator M^{-1}S (mass-normalised cotangent Laplacian)."""
     n_vertices = V.shape[0]
     edge_distances, face_areas = compute_mesh_geometry(V, F)
     W = compute_cotangent_weights(F, face_areas, edge_distances)
@@ -406,10 +395,31 @@ def build_laplace_beltrami_normalized(
     return sparse.coo_matrix((normalized_data, (L.row, L.col)), shape=L.shape)
 
 
+def build_dirac(
+    V: np.ndarray, F: np.ndarray
+) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
+    """Build the Dirac operator and its adjoint such that Re(DiA Di) = M^{-1}S."""
+    _, face_areas = compute_mesh_geometry(V, F)
+    return compute_dirac(V, F, face_areas)
+
+
+def build_dirac_stiff(
+    V: np.ndarray, F: np.ndarray
+) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
+    """Build the Dirac operator and its adjoint such that Re(DiA Di) = S."""
+    Di, _ = build_dirac(V, F)
+    _, face_areas = compute_mesh_geometry(V, F)
+    sqrt_fa = np.sqrt(face_areas)
+    Di_s_data = sqrt_fa[Di.row // 4] * Di.data
+    Di_s = sparse.coo_matrix((Di_s_data, (Di.row, Di.col)), shape=Di.shape)
+    T = Di_s.T.tocoo()
+    return Di_s, T
+
+
 def build_dirac_graph_norm(
     faces: np.ndarray, n_vertices: int
 ) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
-    """Build the normalised combinatorial graph Dirac operator (D_tilde = D_comb @ D_deg^{-1/2}) and its adjoint."""
+    """Build the topology-only Dirac operator such that Re(Di^T Di) = L_norm."""
     adjacency_matrix = compute_adjacency_matrix(faces, n_vertices)
     degree_inv_sqrt_matrix = compute_degree_inv_sqrt_matrix(adjacency_matrix)
     Di_comb = compute_graph_dirac(faces, n_vertices)
@@ -418,39 +428,7 @@ def build_dirac_graph_norm(
     Di_graph_norm = sparse.coo_matrix(
         (Di_graph_norm_data, (Di_comb.row, Di_comb.col)), shape=Di_comb.shape
     )
-    Di_comb_T = Di_comb.T.tocoo()
-    DiA_graph_norm_data = degree_inv_sqrt_diag[Di_comb_T.row // 4] * Di_comb_T.data
-    DiA_graph_norm = sparse.coo_matrix(
-        (DiA_graph_norm_data, (Di_comb_T.row, Di_comb_T.col)), shape=Di_comb_T.shape
-    )
-    return Di_graph_norm, DiA_graph_norm
-
-
-def build_dirac_norm(
-    V: np.ndarray, F: np.ndarray
-) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
-    """Build the continuous Dirac operators normalized as in the slides (Di, DiA)."""
-    n_vertices = V.shape[0]
-    _, face_areas = compute_mesh_geometry(V, F)
-    Di, DiA = compute_dirac(V, F, face_areas, normalize=True)
-    vertex_dual_areas = compute_vertex_dual_areas(F, face_areas, n_vertices)
-    inv_sqrt_areas = np.zeros_like(vertex_dual_areas)
-    mask = vertex_dual_areas > 0
-    inv_sqrt_areas[mask] = 1.0 / np.sqrt(vertex_dual_areas[mask])
-    Di_norm_data = Di.data * inv_sqrt_areas[Di.col // 4]
-    Di_norm = sparse.coo_matrix((Di_norm_data, (Di.row, Di.col)), shape=Di.shape)
-    DiA_norm_data = inv_sqrt_areas[DiA.row // 4] * DiA.data
-    DiA_norm = sparse.coo_matrix((DiA_norm_data, (DiA.row, DiA.col)), shape=DiA.shape)
-    return Di_norm, DiA_norm
-
-
-def build_dirac(
-    V: np.ndarray, F: np.ndarray
-) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
-    """Build the continuous Dirac operators with area-normalization (Di, DiA)."""
-    _, face_areas = compute_mesh_geometry(V, F)
-    Di, DiA = compute_dirac(V, F, face_areas, normalize=True)
-    return Di, DiA
+    return Di_graph_norm, Di_graph_norm.T.tocoo()
 
 
 # ==============================================================================
@@ -467,20 +445,20 @@ def build_operator(
     if operator == ModelOperators.lap_graph_norm:
         return build_normalized_graph_laplacian(faces, vertices.shape[0]), None
 
-    if operator == ModelOperators.dirac_graph_norm:
-        return build_dirac_graph_norm(faces, vertices.shape[0])
+    if operator == ModelOperators.lap_stiff:
+        return build_lap_stiff(vertices, faces), None
 
     if operator == ModelOperators.lap_beltrami:
         return build_laplace_beltrami(vertices, faces), None
 
-    if operator == ModelOperators.lap_beltrami_norm:
-        return build_laplace_beltrami_normalized(vertices, faces), None
-
-    if operator == ModelOperators.dirac_norm:
-        return build_dirac_norm(vertices, faces)
-
     if operator == ModelOperators.dirac:
         return build_dirac(vertices, faces)
+
+    if operator == ModelOperators.dirac_stiff:
+        return build_dirac_stiff(vertices, faces)
+
+    if operator == ModelOperators.dirac_graph_norm:
+        return build_dirac_graph_norm(faces, vertices.shape[0])
 
     raise ValueError("Unknown operator")
 
@@ -493,8 +471,8 @@ def get_dummy_operator(
 
     if operator_type in (
         ModelOperators.lap_graph_norm,
+        ModelOperators.lap_stiff,
         ModelOperators.lap_beltrami,
-        ModelOperators.lap_beltrami_norm,
     ):
         row, col = compute_directed_edges(faces)
         edges = np.unique(np.stack([row, col], axis=1), axis=0)
@@ -506,9 +484,9 @@ def get_dummy_operator(
         op_adj_nnz = 0
 
     elif operator_type in (
-        ModelOperators.dirac_graph_norm,
-        ModelOperators.dirac_norm,
         ModelOperators.dirac,
+        ModelOperators.dirac_stiff,
+        ModelOperators.dirac_graph_norm,
     ):
         n_faces = faces.shape[0]
         nnz = 48 * n_faces
@@ -520,6 +498,6 @@ def get_dummy_operator(
     else:
         raise ValueError("Unknown operator")
 
-    mean_operator = buid_dummy_sparse_tensor(op_shape, op_nnz)
-    mean_operator_adjoint = buid_dummy_sparse_tensor(op_adj_shape, op_adj_nnz)
+    mean_operator = build_dummy_sparse_tensor(op_shape, op_nnz)
+    mean_operator_adjoint = build_dummy_sparse_tensor(op_adj_shape, op_adj_nnz)
     return mean_operator, mean_operator_adjoint

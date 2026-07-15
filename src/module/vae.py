@@ -172,10 +172,13 @@ class BaseVAE(nn.Module):
         if operator is None or operator.numel() == 0:
             return None
 
-        if self.operator_type == ModelOperators.lap_beltrami:
+        if self.operator_type == ModelOperators.lap_stiff:
             return operator * (self.mean_shape_std**2)
 
-        if self.operator_type == ModelOperators.dirac:
+        if self.operator_type in (
+            ModelOperators.dirac,
+            ModelOperators.dirac_stiff,
+        ):
             return operator * self.mean_shape_std
 
         return operator

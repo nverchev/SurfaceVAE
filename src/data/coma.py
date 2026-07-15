@@ -318,8 +318,8 @@ class BaseCOMAData(metaclass=Singleton):
             if self.operator_type == ModelOperators.dirac_graph_norm:
                 adjoint_operator = [op_const.T] * vertices.shape[0]
             elif self.operator_type in (
-                ModelOperators.dirac_norm,
                 ModelOperators.dirac,
+                ModelOperators.dirac_stiff,
             ):
                 adj_name = f"{partition.name}/{H5Keys.OPERATORS_ADJOINT}/{self.operator_type.name}"
                 if self.lazy_load:

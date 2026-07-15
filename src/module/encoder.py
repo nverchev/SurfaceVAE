@@ -181,7 +181,7 @@ def get_encoder() -> BaseEncoder:
 
     if cfg.model.operator in (
         ModelOperators.dirac,
-        ModelOperators.dirac_norm,
+        ModelOperators.dirac_stiff,
         ModelOperators.dirac_graph_norm,
     ):
         return DirEncoder()

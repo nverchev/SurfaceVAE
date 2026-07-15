@@ -182,7 +182,7 @@ def get_decoder() -> BaseDecoder:
 
     if operator_type in (
         ModelOperators.dirac,
-        ModelOperators.dirac_norm,
+        ModelOperators.dirac_stiff,
         ModelOperators.dirac_graph_norm,
     ):
         return DirDecoder()
