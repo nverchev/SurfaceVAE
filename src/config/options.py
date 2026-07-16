@@ -48,9 +48,6 @@ class Identities(enum.StrEnum):
 class ModelOperators(enum.StrEnum):
     """Available graph VAE operators."""
 
-    none = enum.auto()
-    """Pointwise baseline, no operators/graph structure used."""
-
     lap_stiff = enum.auto()
     """Stiffness matrix S from cotangent-weighted Laplace-Beltrami."""
 

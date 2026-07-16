@@ -94,41 +94,6 @@ class LinearLayer(nn.Module):
         return
 
 
-class PointwiseResNet(nn.Module):
-    """Pointwise residual block (no graph/mesh operators)."""
-
-    def __init__(
-        self,
-        n_outputs: int,
-        act: nn.Module,
-        batch_norm_momentum: float | None = 0.1,
-    ) -> None:
-        super().__init__()
-        self.n_outputs = n_outputs
-        self.act = act
-        self.bn_fc0 = LinearLayer(
-            n_outputs,
-            n_outputs,
-            use_batch_norm=True,
-            act=act,
-            batch_norm_momentum=batch_norm_momentum,
-        )
-        self.bn_fc1 = LinearLayer(
-            n_outputs,
-            n_outputs,
-            use_batch_norm=True,
-            act=act,
-            truncated_init=True,
-            batch_norm_momentum=batch_norm_momentum,
-        )
-        return
-
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        x = self.bn_fc0(inputs)
-        x = self.bn_fc1(x)
-        return x + inputs
-
-
 class LapResNet(nn.Module):
     """Residual block utilizing Laplacian operator."""
 

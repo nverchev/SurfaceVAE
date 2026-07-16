@@ -436,12 +436,9 @@ def build_dirac_graph_norm(
 
 def build_operator(
     sample: tuple[np.ndarray, np.ndarray], operator: ModelOperators
-) -> tuple[sparse.coo_matrix | None, sparse.coo_matrix | None]:
+) -> tuple[sparse.coo_matrix, sparse.coo_matrix | None]:
     """Process a single shape (vertices, faces) into operators in a vectorized manner."""
     vertices, faces = sample
-    if operator == ModelOperators.none:
-        return None, None
-
     if operator == ModelOperators.lap_graph_norm:
         return build_normalized_graph_laplacian(faces, vertices.shape[0]), None
 
@@ -465,10 +462,7 @@ def build_operator(
 
 def get_dummy_operator(
     faces: np.ndarray, n_vertices: int, operator_type: ModelOperators
-) -> tuple[sparse.coo_matrix | None, sparse.coo_matrix | None]:
-    if operator_type == ModelOperators.none:
-        return None, None
-
+) -> tuple[sparse.coo_matrix, sparse.coo_matrix | None]:
     if operator_type in (
         ModelOperators.lap_graph_norm,
         ModelOperators.lap_stiff,
@@ -500,4 +494,5 @@ def get_dummy_operator(
 
     mean_operator = build_dummy_sparse_tensor(op_shape, op_nnz)
     mean_operator_adjoint = build_dummy_sparse_tensor(op_adj_shape, op_adj_nnz)
+    assert mean_operator is not None
     return mean_operator, mean_operator_adjoint

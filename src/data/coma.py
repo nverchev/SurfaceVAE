@@ -94,16 +94,30 @@ class BaseCOMAData(metaclass=Singleton):
         self._setup_attributes(cfg)
         self.h5_path = self._get_h5_path()
         self.class_names = sorted([d.name for d in self.coma_dir.glob("FaceTalk_*")])
-        if not self.h5_path.exists():
+        if not self._h5_has_vertices():
+            if self.h5_path.exists():
+                self.h5_path.unlink()
+
             self._preprocess_shapes_and_labels()
 
-        if self.operator_type != ModelOperators.none:
-            self._precompute_all_operators()
+        self._precompute_all_operators()
 
         with h5py.File(self.h5_path, "r") as f:
             self.faces = get_h5_dataset(f, H5Keys.FACES)[:]
 
         return
+
+    def _h5_has_vertices(self) -> bool:
+        """Return True only if the HDF5 file exists and has all partition vertex groups."""
+        if not self.h5_path.exists():
+            return False
+
+        with h5py.File(self.h5_path, "r") as f:
+            return all(
+                f"{p.name}/{H5Keys.VERTICES}" in f
+                for p in Partitions
+                if p != Partitions.train_val
+            )
 
     def _precompute_all_operators(self) -> None:
         operator_is_constant = self.operator_type in (
@@ -302,8 +316,6 @@ class BaseCOMAData(metaclass=Singleton):
             faces = get_h5_dataset(f, H5Keys.FACES)[:]
             vertices = get_h5_dataset(f, f"{partition.name}/{H5Keys.VERTICES}")[:]
             labels = get_h5_dataset(f, f"{partition.name}/{H5Keys.LABELS}")[:]
-            if self.operator_type == ModelOperators.none:
-                return vertices, faces, None, None, labels
 
             if operator_is_constant:
                 op_const = load_sparse_matrix_as_pytorch(get_h5_group(f, group_name))
