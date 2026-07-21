@@ -90,7 +90,9 @@ class LapEncoder(BaseEncoder):
         operator_adjoint: torch.Tensor | None = None,
     ) -> torch.Tensor:
         if operator is None or operator.numel() == 0:
-            raise ValueError("Operator must be provided.")
+            from src.data import compute_operators_on_the_fly
+
+            operator, _ = compute_operators_on_the_fly(raw_inputs, self.operator_type)
 
         x = self.conv1(inputs)
         for layer in self.layers:
@@ -128,7 +130,11 @@ class DirEncoder(BaseEncoder):
         operator_adjoint: torch.Tensor | None = None,
     ) -> torch.Tensor:
         if operator is None or operator.numel() == 0:
-            raise ValueError("Operator must be provided.")
+            from src.data import compute_operators_on_the_fly
+
+            operator, operator_adjoint = compute_operators_on_the_fly(
+                raw_inputs, self.operator_type
+            )
 
         batch_size, _, _ = inputs.size()
         v = self.conv1(inputs)

@@ -317,6 +317,7 @@ class UserSettings:
     plot: PlottingOptions
     generate: GenerationOptions
     lazy_load: bool = True
+    on_the_fly: bool = False
     load_checkpoint: int = 0
     n_subprocesses: PositiveInt = 0
     hydra = HydraSettings()

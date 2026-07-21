@@ -1,9 +1,13 @@
 """Vectorized preprocessing functions for building fixed graph operators."""
 
+from typing import cast
+
 import numpy as np
 import scipy.sparse as sparse
+import torch
 
 from src.config.options import ModelOperators
+from src.utils.sparse import scipy_sparse_to_pytorch_sparse
 
 # ==============================================================================
 # Basic Graph Connectivity
@@ -496,3 +500,36 @@ def get_dummy_operator(
     mean_operator_adjoint = build_dummy_sparse_tensor(op_adj_shape, op_adj_nnz)
     assert mean_operator is not None
     return mean_operator, mean_operator_adjoint
+
+
+def compute_operators_on_the_fly(
+    x: torch.Tensor, operator_type: ModelOperators
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Compute sparse operators on-the-fly for a batch of vertices."""
+    from src.data.coma import BaseCOMAData
+
+    batch_size = x.size(0)
+    faces = BaseCOMAData.get_faces()
+    computed_ops = []
+    computed_adjs = []
+    x_cpu = x.detach().cpu()
+    for i in range(batch_size):
+        v_np = x_cpu[i].numpy()
+        op, op_adj = build_operator((v_np, faces), operator_type)
+        computed_ops.append(op)
+        if op_adj is not None:
+            computed_adjs.append(op_adj)
+
+    operator_scipy = cast(sparse.coo_matrix, sparse.block_diag(computed_ops).tocoo())
+    operator = scipy_sparse_to_pytorch_sparse(operator_scipy).to(x.device)
+    if computed_adjs:
+        operator_adjoint_scipy = cast(
+            sparse.coo_matrix, sparse.block_diag(computed_adjs).tocoo()
+        )
+        operator_adjoint = scipy_sparse_to_pytorch_sparse(operator_adjoint_scipy).to(
+            x.device
+        )
+    else:
+        operator_adjoint = torch.empty(0, device=x.device)
+
+    return operator, operator_adjoint

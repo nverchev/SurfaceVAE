@@ -13,6 +13,7 @@ from src.data.structures import Input, Target, Output
 from src.data.operators import (
     build_operator,
     get_dummy_operator,
+    compute_operators_on_the_fly,
 )
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "N_VERTICES",
     "build_operator",
     "get_dummy_operator",
+    "compute_operators_on_the_fly",
 ]

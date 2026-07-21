@@ -7,6 +7,7 @@ cpu: false
 n_workers: 0
 n_subprocesses: 0
 lazy_load: true
+on_the_fly: false
 checkpoint_every: 100
 load_checkpoint: 0
 

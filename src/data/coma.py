@@ -91,6 +91,7 @@ class BaseCOMAData(metaclass=Singleton):
         self.coma_dir = cfg.user.path.data_dir / self.folder
         self.operator_type = cfg.model.operator
         self.lazy_load = cfg.user.lazy_load
+        self.on_the_fly = cfg.user.on_the_fly
         self._setup_attributes(cfg)
         self.h5_path = self._get_h5_path()
         self.class_names = sorted([d.name for d in self.coma_dir.glob("FaceTalk_*")])
@@ -112,18 +113,24 @@ class BaseCOMAData(metaclass=Singleton):
         if not self.h5_path.exists():
             return False
 
-        with h5py.File(self.h5_path, "r") as f:
-            return all(
-                f"{p.name}/{H5Keys.VERTICES}" in f
-                for p in Partitions
-                if p != Partitions.train_val
-            )
+        try:
+            with h5py.File(self.h5_path, "r") as f:
+                return all(
+                    f"{p.name}/{H5Keys.VERTICES}" in f
+                    for p in Partitions
+                    if p != Partitions.train_val
+                )
+        except Exception:
+            return False
 
     def _precompute_all_operators(self) -> None:
         operator_is_constant = self.operator_type in (
             ModelOperators.lap_graph_norm,
             ModelOperators.dirac_graph_norm,
         )
+        should_compute_on_the_fly = not operator_is_constant and self.on_the_fly
+        if should_compute_on_the_fly:
+            return
         with h5py.File(self.h5_path, "a") as f:
             faces = get_h5_dataset(f, H5Keys.FACES)[:]
             for partition in [Partitions.train, Partitions.val, Partitions.test]:
@@ -306,6 +313,7 @@ class BaseCOMAData(metaclass=Singleton):
             ModelOperators.lap_graph_norm,
             ModelOperators.dirac_graph_norm,
         )
+        should_compute_on_the_fly = not operator_is_constant and self.on_the_fly
         group_name = (
             self.operator_type.name
             if operator_is_constant
@@ -317,7 +325,9 @@ class BaseCOMAData(metaclass=Singleton):
             vertices = get_h5_dataset(f, f"{partition.name}/{H5Keys.VERTICES}")[:]
             labels = get_h5_dataset(f, f"{partition.name}/{H5Keys.LABELS}")[:]
 
-            if operator_is_constant:
+            if should_compute_on_the_fly:
+                operator = None
+            elif operator_is_constant:
                 op_const = load_sparse_matrix_as_pytorch(get_h5_group(f, group_name))
                 operator = [op_const] * vertices.shape[0]
             elif self.lazy_load:
@@ -327,7 +337,9 @@ class BaseCOMAData(metaclass=Singleton):
                     get_h5_group(f, group_name)
                 )
 
-            if self.operator_type == ModelOperators.dirac_graph_norm:
+            if should_compute_on_the_fly:
+                adjoint_operator = None
+            elif self.operator_type == ModelOperators.dirac_graph_norm:
                 adjoint_operator = [op_const.T] * vertices.shape[0]
             elif self.operator_type in (
                 ModelOperators.dirac,
