@@ -63,7 +63,7 @@ def main(cfg: AllConfig) -> None:
     exp = Experiment(
         cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags
     )
-    with exp.create_run(resume=True):
+    with exp.create_run(record=False):
         explore_dataset()
 
     return

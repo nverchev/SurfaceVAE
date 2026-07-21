@@ -19,7 +19,7 @@ def generate_samples() -> None:
     batch_size = cfg_user.generate.batch_size
     save_dir = cfg.user.path.version_dir / "images" / cfg.name / "generated"
     save_dir.mkdir(parents=True, exist_ok=True)
-    faces = get_active_dataset().faces
+    faces = get_active_dataset().get_faces()
     vae_module = load_extract_vae_module()
     logging.info("Generating %d random samples using the VAE...", batch_size)
     generated_shapes = vae_module.generate_sample(batch_size)
