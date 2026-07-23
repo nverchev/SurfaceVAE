@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 from src.config import Experiment, ModelOperators
-from src.data import Input, Output
+from src.data import Input, Output, compute_operators_on_the_fly
 from src.module.encoder import get_encoder
 from src.module.decoder import get_decoder
 
@@ -122,8 +122,15 @@ class BaseVAE(nn.Module):
     def forward(self, inputs: Input) -> Output:
         out = Output()
         sample = self.normalize_sample(inputs.x)
-        operator = self.normalize_operator(inputs.operator)
-        operator_adjoint = self.normalize_operator(inputs.operator_adjoint)
+        raw_operator = inputs.operator
+        raw_operator_adjoint = inputs.operator_adjoint
+        if raw_operator is None or raw_operator.numel() == 0:
+            raw_operator, raw_operator_adjoint = compute_operators_on_the_fly(
+                inputs.x, self.operator_type
+            )
+
+        operator = self.normalize_operator(raw_operator)
+        operator_adjoint = self.normalize_operator(raw_operator_adjoint)
         out.mu, out.logvar = self.encode(
             sample, inputs.x, operator, operator_adjoint
         ).chunk(2, dim=-1)

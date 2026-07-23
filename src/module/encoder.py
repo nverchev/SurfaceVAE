@@ -89,11 +89,6 @@ class LapEncoder(BaseEncoder):
         operator: torch.Tensor | None,
         operator_adjoint: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        if operator is None or operator.numel() == 0:
-            from src.data import compute_operators_on_the_fly
-
-            operator, _ = compute_operators_on_the_fly(raw_inputs, self.operator_type)
-
         x = self.conv1(inputs)
         for layer in self.layers:
             x = layer(operator, x)
@@ -129,13 +124,6 @@ class DirEncoder(BaseEncoder):
         operator: torch.Tensor | None,
         operator_adjoint: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        if operator is None or operator.numel() == 0:
-            from src.data import compute_operators_on_the_fly
-
-            operator, operator_adjoint = compute_operators_on_the_fly(
-                raw_inputs, self.operator_type
-            )
-
         batch_size, _, _ = inputs.size()
         v = self.conv1(inputs)
         f = torch.zeros(batch_size, self.n_faces, self.n_features, device=inputs.device)
