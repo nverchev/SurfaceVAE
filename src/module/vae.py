@@ -148,9 +148,26 @@ class BaseVAE(nn.Module):
         out.recon_logvar = self.recon_logvar
         return out
 
-    def generate_sample(self, n_samples: int) -> torch.Tensor:
+    def generate_sample(
+        self,
+        n_samples: int,
+        z_max: float | None = None,
+        z_std: float | None = None,
+    ) -> torch.Tensor:
+        cfg = Experiment.get_config()
+        if z_max is None:
+            z_max = cfg.user.generate.z_max
+
+        if z_std is None:
+            z_std = cfg.user.generate.z_std
+
         out = Output()
-        out.z = torch.randn(n_samples, self.dim_latent, device=self.mean_shape.device)
+        out.z = z_std * torch.randn(
+            n_samples, self.dim_latent, device=self.mean_shape.device
+        )
+        if z_max is not None and z_max > 0:
+            out.z = torch.clamp(out.z, min=-z_max, max=z_max)
+
         if self.use_mean_shape:
             decoder_mean_shape = self.normalize_sample(self.mean_shape)
         else:

@@ -17,12 +17,19 @@ def generate_samples() -> None:
     cfg_user = cfg.user
     interactive = cfg_user.plot.interactive
     batch_size = cfg_user.generate.batch_size
+    z_max = cfg_user.generate.z_max
+    z_std = cfg_user.generate.z_std
     save_dir = cfg.user.path.version_dir / "images" / cfg.name / "generated"
     save_dir.mkdir(parents=True, exist_ok=True)
     faces = get_active_dataset().get_faces()
     vae_module = load_extract_vae_module()
-    logging.info("Generating %d random samples using the VAE...", batch_size)
-    generated_shapes = vae_module.generate_sample(batch_size)
+    logging.info(
+        "Generating %d random samples using the VAE (z_max=%s, z_std=%s)...",
+        batch_size,
+        z_max,
+        z_std,
+    )
+    generated_shapes = vae_module.generate_sample(batch_size, z_max=z_max, z_std=z_std)
     for i in range(batch_size):
         shape = generated_shapes[i].cpu().numpy()
         logging.info("  Rendering generated sample %d", i)

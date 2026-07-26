@@ -26,12 +26,15 @@ generate:
   bias_value: 0.
   tour_samples_per_plane: 16
   tour_radius: 1.0
+  z_max: 2.0
+  z_std: 0.5
 
 # Options for visualization
 plot:
   interactive: false
   sample_indices: []
   use_train: false
+  use_mean_shape: true
   interpolation_step_factor: 0.3
   interpolation_steps: 4
-  num_eigenvectors: 5
+  num_eigenvectors: 10

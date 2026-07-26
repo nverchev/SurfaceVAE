@@ -271,11 +271,22 @@ class HydraSettings:
 
 @dataclass
 class PlottingOptions:
-    """Options for plotting and visualization."""
+    """Options for plotting and visualization.
+
+    Attributes:
+        interactive (bool): Whether to render interactive mesh visualizations
+        sample_indices (list[PositiveInt]): List of dataset sample indices to visualize or interpolate
+        use_train (bool): Whether to evaluate on training set instead of test/val split
+        use_mean_shape (bool): Whether to use mean shape centering in visualization
+        interpolation_step_factor (float): Step scaling factor for latent space interpolation
+        interpolation_steps (PositiveInt): Number of steps in each direction for latent interpolation
+        num_eigenvectors (PositiveInt): Number of operator eigenvectors to visualize
+    """
 
     interactive: bool
     sample_indices: list[PositiveInt] = dataclasses.field(default_factory=list)
     use_train: bool = False
+    use_mean_shape: bool = True
     interpolation_step_factor: float = 0.3
     interpolation_steps: PositiveInt = 4
     num_eigenvectors: PositiveInt = 5
@@ -283,13 +294,25 @@ class PlottingOptions:
 
 @dataclass
 class GenerationOptions:
-    """Options for the generation of meshes."""
+    """Options for the generation of meshes.
+
+    Attributes:
+        batch_size (StrictlyPositiveInt): Number of random mesh samples to generate
+        bias_dim (PositiveInt): Latent dimension index to apply a constant bias
+        bias_value (float): Value of constant bias added to latent dimension
+        tour_samples_per_plane (StrictlyPositiveInt): Number of samples per plane in latent tour
+        tour_radius (float): Radius of the spherical trajectory in latent tour
+        z_max (float | None): Maximum absolute bound to clamp latent z values to avoid outliers
+        z_std (float): Standard deviation of normal distribution used for sampling z
+    """
 
     batch_size: StrictlyPositiveInt
     bias_dim: PositiveInt
     bias_value: float
     tour_samples_per_plane: StrictlyPositiveInt = 16
     tour_radius: float = 1.0
+    z_max: float | None = 2.0
+    z_std: float = 1.0
 
 
 @dataclass
