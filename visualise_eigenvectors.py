@@ -25,17 +25,16 @@ from src.utils.visualization import render_mesh
 logger = logging.getLogger(__name__)
 
 
-def extract_valid_modes(
+def extract_all_modes(
     eigenvalues: np.ndarray,
     eigenvectors: np.ndarray,
     num_evs: int,
-) -> np.ndarray:
+) -> tuple[np.ndarray, np.ndarray]:
+    """Extract all sorted modes starting from the lowest eigenvalue."""
     idx = np.argsort(eigenvalues)
-    eigenvalues = eigenvalues[idx]
-    eigenvectors = eigenvectors[:, idx]
-    valid_mask = eigenvalues > 1e-6
-    valid_vecs = eigenvectors[:, valid_mask]
-    return valid_vecs[:, :num_evs]
+    sorted_evals = eigenvalues[idx][:num_evs]
+    sorted_vecs = eigenvectors[:, idx][:, :num_evs]
+    return sorted_evals, sorted_vecs
 
 
 def vec3_to_rgb(vecs: np.ndarray) -> np.ndarray:
@@ -84,29 +83,29 @@ def visualise_eigenvectors() -> None:
 
     faces = dataset.faces
     sample_indices = cfg_user.plot.sample_indices
-    if not sample_indices:
+    use_mean_shape = cfg_user.plot.use_mean_shape
+
+    items_to_process = []
+    if sample_indices:
+        for i in sample_indices:
+            if i >= len(dataset):
+                raise ValueError(
+                    f"Index {i} is too large for the selected dataset of length {len(dataset)}"
+                )
+            item = dataset[i]
+            items_to_process.append((f"sample_{i}", item[0].x.numpy()))
+    elif use_mean_shape:
+        items_to_process.append(("mean_shape", dataset.mean_shape.numpy()))
+    else:
         assert isinstance(dataset, Sized)
-        sample_indices = [random.randint(0, len(dataset) - 1)]
+        idx = random.randint(0, len(dataset) - 1)
+        items_to_process.append((f"sample_{idx}", dataset[idx][0].x.numpy()))
 
     operator_type = cfg.model.operator
     num_evs = cfg_user.plot.num_eigenvectors
-    for i in sample_indices:
-        if i >= len(dataset):
-            raise ValueError(
-                f"Index {i} is too large for the selected dataset of length {len(dataset)}"
-            )
-
-        item = dataset[i]
-        vertices = item[0].x.numpy()
-        save_dir = save_dir_base / f"sample_{i}"
+    for item_name, vertices in items_to_process:
+        save_dir = save_dir_base / item_name
         save_dir.mkdir(parents=True, exist_ok=True)
-        render_mesh(
-            vertices,
-            faces,
-            title="original",
-            interactive=interactive,
-            save_dir=save_dir,
-        )
         if operator_type == ModelOperators.lap_beltrami:
             L_cot = build_lap_stiff(vertices, faces)
             _, face_areas = compute_mesh_geometry(vertices, faces)
@@ -118,7 +117,7 @@ def visualise_eigenvectors() -> None:
             L_sym = D_inv_sqrt_mat @ L_cot @ D_inv_sqrt_mat
             eigenvalues, eigenvectors_sym = spla.eigsh(
                 L_sym.tocsc(),
-                k=num_evs + 25,
+                k=max(num_evs + 15, 25),
                 sigma=1e-2,
                 which="LM",
             )
@@ -136,7 +135,7 @@ def visualise_eigenvectors() -> None:
             S = op.T @ op
             eigenvalues, eigenvectors = spla.eigsh(
                 S.tocsc(),
-                k=num_evs + 25,
+                k=max(num_evs + 15, 25),
                 sigma=1e-2,
                 which="LM",
             )
@@ -148,19 +147,23 @@ def visualise_eigenvectors() -> None:
 
             eigenvalues, eigenvectors = spla.eigsh(
                 op.tocsc(),
-                k=num_evs + 25,
+                k=max(num_evs + 15, 25),
                 sigma=1e-2,
                 which="LM",
             )
 
-        valid_vecs = extract_valid_modes(eigenvalues, eigenvectors, num_evs)
-        for col in range(valid_vecs.shape[1]):
-            norm_val = np.linalg.norm(valid_vecs[:, col])
+        sorted_evals, sorted_vecs = extract_all_modes(
+            eigenvalues, eigenvectors, num_evs
+        )
+        for col in range(sorted_vecs.shape[1]):
+            norm_val = np.linalg.norm(sorted_vecs[:, col])
             if norm_val > 1e-8:
-                valid_vecs[:, col] = valid_vecs[:, col] / norm_val
+                sorted_vecs[:, col] = sorted_vecs[:, col] / norm_val
 
-        for ev_idx in range(valid_vecs.shape[1]):
-            ev = valid_vecs[:, ev_idx]
+        for ev_idx in range(sorted_vecs.shape[1]):
+            ev = sorted_vecs[:, ev_idx]
+            ev_val = sorted_evals[ev_idx]
+            eval_str = f"{ev_val:.6f}"
             if operator_type in (
                 ModelOperators.dirac,
                 ModelOperators.dirac_stiff,
@@ -171,7 +174,7 @@ def visualise_eigenvectors() -> None:
                 render_mesh(
                     vertices,
                     faces,
-                    title=f"eigenvector_{ev_idx + 1}",
+                    title=f"eigenvector_{ev_idx + 1}_eval_{eval_str}",
                     interactive=interactive,
                     save_dir=save_dir,
                     scalars=scalars,
@@ -179,10 +182,10 @@ def visualise_eigenvectors() -> None:
                 )
 
                 scalars = ev_reshaped[:, 0]
-                title = f"eigenvector_{ev_idx + 1}_real"
+                title = f"eigenvector_{ev_idx + 1}_real_eval_{eval_str}"
             else:
                 scalars = ev
-                title = f"eigenvector_{ev_idx + 1}"
+                title = f"eigenvector_{ev_idx + 1}_eval_{eval_str}"
 
             render_mesh(
                 vertices,

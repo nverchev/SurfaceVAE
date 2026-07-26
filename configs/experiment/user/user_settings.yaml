@@ -27,7 +27,7 @@ generate:
   tour_samples_per_plane: 16
   tour_radius: 1.0
   z_max: 2.0
-  z_std: 0.5
+  z_std: 0.9
 
 # Options for visualization
 plot:

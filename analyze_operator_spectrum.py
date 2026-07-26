@@ -95,7 +95,7 @@ def analyze_operator_spectrum() -> None:
     cfg = Experiment.get_config()
     cfg_user = cfg.user
     operator_type = cfg.model.operator
-    save_dir = cfg.user.path.version_dir / "images" / cfg.name / "spectrum"
+    save_dir = cfg.user.path.version_dir / "spectrum" / cfg.name
     save_dir.mkdir(parents=True, exist_ok=True)
     if cfg_user.plot.use_train:
         partition = Partitions.train_val if cfg.final else Partitions.train
