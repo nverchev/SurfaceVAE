@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 from src.config import Experiment, ModelOperators
-from src.data import Input, Output, compute_operators_on_the_fly
+from src.data import Inputs, Outputs, compute_operators_on_the_fly
 from src.module.encoder import get_encoder
 from src.module.decoder import get_decoder
 
@@ -40,34 +40,30 @@ class BaseVAE(nn.Module):
         self.use_mean_shape = cfg.model.use_mean_shape
         self.operator_type = cfg.model.operator
         self.register_buffer(
-            "recon_logvar",
+            'recon_logvar',
             torch.tensor([math.log(cfg.train.objective.beta)]),
         )
-        self.register_buffer("mean_shape", mean_shape)
-        self.register_buffer("mean_shape_center", mean_shape.mean(dim=0, keepdim=True))
-        self.register_buffer("mean_shape_std", mean_shape.std())
+        self.register_buffer('mean_shape', mean_shape)
+        self.register_buffer('mean_shape_center', mean_shape.mean(dim=0, keepdim=True))
+        self.register_buffer('mean_shape_std', mean_shape.std())
         if mean_operator is not None and mean_operator.numel() > 0:
             coalesced_op = mean_operator.coalesce()
-            self.register_buffer("mean_operator_indices", coalesced_op.indices())
-            self.register_buffer("mean_operator_values", coalesced_op.values())
+            self.register_buffer('mean_operator_indices', coalesced_op.indices())
+            self.register_buffer('mean_operator_values', coalesced_op.values())
             self.mean_operator_size = coalesced_op.size()
         else:
-            self.register_buffer(
-                "mean_operator_indices", torch.empty(0, dtype=torch.long)
-            )
-            self.register_buffer("mean_operator_values", torch.empty(0))
+            self.register_buffer('mean_operator_indices', torch.empty(0, dtype=torch.long))
+            self.register_buffer('mean_operator_values', torch.empty(0))
             self.mean_operator_size = torch.Size([0, 0])
 
         if mean_operator_adjoint is not None and mean_operator_adjoint.numel() > 0:
             coalesced_adj = mean_operator_adjoint.coalesce()
-            self.register_buffer("mean_operator_adj_indices", coalesced_adj.indices())
-            self.register_buffer("mean_operator_adj_values", coalesced_adj.values())
+            self.register_buffer('mean_operator_adj_indices', coalesced_adj.indices())
+            self.register_buffer('mean_operator_adj_values', coalesced_adj.values())
             self.mean_operator_adj_size = coalesced_adj.size()
         else:
-            self.register_buffer(
-                "mean_operator_adj_indices", torch.empty(0, dtype=torch.long)
-            )
-            self.register_buffer("mean_operator_adj_values", torch.empty(0))
+            self.register_buffer('mean_operator_adj_indices', torch.empty(0, dtype=torch.long))
+            self.register_buffer('mean_operator_adj_values', torch.empty(0))
             self.mean_operator_adj_size = torch.Size([0, 0])
 
         self.encoder = get_encoder()
@@ -119,21 +115,17 @@ class BaseVAE(nn.Module):
     ) -> torch.Tensor:
         return self.decoder(z, mean_operator, mean_operator_adjoint, mean_shape)
 
-    def forward(self, inputs: Input) -> Output:
-        out = Output()
+    def forward(self, inputs: Inputs) -> Outputs:
+        out = Outputs()
         sample = self.normalize_sample(inputs.x)
         raw_operator = inputs.operator
         raw_operator_adjoint = inputs.operator_adjoint
         if raw_operator is None or raw_operator.numel() == 0:
-            raw_operator, raw_operator_adjoint = compute_operators_on_the_fly(
-                inputs.x, self.operator_type
-            )
+            raw_operator, raw_operator_adjoint = compute_operators_on_the_fly(inputs.x, self.operator_type)
 
         operator = self.normalize_operator(raw_operator)
         operator_adjoint = self.normalize_operator(raw_operator_adjoint)
-        out.mu, out.logvar = self.encode(
-            sample, inputs.x, operator, operator_adjoint
-        ).chunk(2, dim=-1)
+        out.mu, out.logvar = self.encode(sample, inputs.x, operator, operator_adjoint).chunk(2, dim=-1)
         out.z = self.sample(out.mu, out.logvar) if self.training else out.mu
         if self.use_mean_shape:
             decoder_mean_shape = self.normalize_sample(self.mean_shape)
@@ -142,9 +134,7 @@ class BaseVAE(nn.Module):
 
         mean_operator = self.normalize_operator(self.mean_operator)
         mean_operator_adjoint = self.normalize_operator(self.mean_operator_adjoint)
-        out.recon_mu = self.decode(
-            out.z, mean_operator, mean_operator_adjoint, decoder_mean_shape
-        )
+        out.recon_mu = self.decode(out.z, mean_operator, mean_operator_adjoint, decoder_mean_shape)
         out.recon_logvar = self.recon_logvar
         return out
 
@@ -161,10 +151,8 @@ class BaseVAE(nn.Module):
         if z_std is None:
             z_std = cfg.user.generate.z_std
 
-        out = Output()
-        out.z = z_std * torch.randn(
-            n_samples, self.dim_latent, device=self.mean_shape.device
-        )
+        out = Outputs()
+        out.z = z_std * torch.randn(n_samples, self.dim_latent, device=self.mean_shape.device)
         if z_max is not None and z_max > 0:
             out.z = torch.clamp(out.z, min=-z_max, max=z_max)
 
@@ -175,9 +163,7 @@ class BaseVAE(nn.Module):
 
         mean_operator = self.normalize_operator(self.mean_operator)
         mean_operator_adjoint = self.normalize_operator(self.mean_operator_adjoint)
-        recon_mu = self.decode(
-            out.z, mean_operator, mean_operator_adjoint, decoder_mean_shape
-        )
+        recon_mu = self.decode(out.z, mean_operator, mean_operator_adjoint, decoder_mean_shape)
         return self.denormalize_sample(recon_mu)
 
     def normalize_sample(self, sample: torch.Tensor) -> torch.Tensor:

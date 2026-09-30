@@ -16,20 +16,20 @@ def get_scheduler(config: SchedulerConfig) -> schedulers.AbstractScheduler:
     elif config.function == Schedulers.exponential:
         scheduler = schedulers.ExponentialScheduler(**config.settings)
     else:
-        raise ValueError(f"Scheduler {config.function} not supported.")
+        raise ValueError(f'Scheduler {config.function} not supported.')
 
     restart = schedulers.restart(
         restart_interval=config.restart_interval,
         restart_fraction=config.restart_fraction,
     )
     warmup = schedulers.warmup(config.warmup_steps)
-    return scheduler.bind(warmup).bind(restart)
+    return scheduler.compose(warmup).compose(restart)
 
 
 def get_learning_schema(cfg: AllConfig) -> LearningSchema:
     """Return configured learning scheme for training."""
     config = cfg.train.learn
-    opt_defaults = {"weight_decay": config.weight_decay, **config.opt_settings}
+    opt_defaults = {'weight_decay': config.weight_decay, **config.opt_settings}
     return LearningSchema(
         optimizer_cls=config.optimizer_cls,
         base_lr=config.learning_rate,

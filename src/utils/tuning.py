@@ -20,7 +20,7 @@ def get_past_final_values(trial: optuna.Trial) -> list[float]:
         if (
             past_trial.state == optuna.trial.TrialState.COMPLETE
             and past_trial.value is not None
-            and not past_trial.user_attrs.get("imputed", False)
+            and not past_trial.user_attrs.get('imputed', False)
         )
     ]
     if len(real_completed_trials) < 10:
@@ -32,51 +32,47 @@ def get_past_final_values(trial: optuna.Trial) -> list[float]:
 def impute_pruned_trial(trial: optuna.Trial) -> float:
     """Input pruned trial with an interpolation from past completed trials' values."""
     past_final_values = get_past_final_values(trial)
-    percentile = (
-        75 if trial.study.direction == optuna.study.StudyDirection.MINIMIZE else 25
-    )
+    percentile = 75 if trial.study.direction == optuna.study.StudyDirection.MINIMIZE else 25
     imputed_value = np.percentile(past_final_values, percentile)
-    trial.set_user_attr("imputed", True)
+    trial.set_user_attr('imputed', True)
     return float(imputed_value)
 
 
 def impute_failed_trial(trial: optuna.Trial) -> float:
     """Input pruned trial with worse completed trials' value."""
     past_final_values = get_past_final_values(trial)
-    worst_fn = (
-        min if trial.study.direction == optuna.study.StudyDirection.MAXIMIZE else max
-    )
-    trial.set_user_attr("imputed", True)
+    worst_fn = min if trial.study.direction == optuna.study.StudyDirection.MAXIMIZE else max
+    trial.set_user_attr('imputed', True)
     return worst_fn(past_final_values)
 
 
 def get_study_name(tuning_scheme: str, overrides: list[str]) -> str:
     """Get the study name from the configuration."""
-    version = f"v{VERSION}"
-    with (ConfigPath.CONFIGS.get_path() / "defaults").with_suffix(".yaml").open() as f:
+    version = f'v{VERSION}'
+    with (ConfigPath.CONFIGS.get_path() / 'defaults').with_suffix('.yaml').open() as f:
         loaded_cfg = yaml.safe_load(f)
-        variation = loaded_cfg["variation"] or get_current_branch()
+        variation = loaded_cfg['variation'] or get_current_branch()
 
     if variation is None:
-        msg = "Variation must be set or a valid git branch must be available."
+        msg = 'Variation must be set or a valid git branch must be available.'
         raise ValueError(msg)
 
     if variation is None:
         variation = get_current_branch()
         if variation is None:
-            msg = "Variation must be set or a valid git branch must be available."
+            msg = 'Variation must be set or a valid git branch must be available.'
             raise ValueError(msg)
 
     override_iter = map(_remove_base_specification, overrides)
     override_iter = map(_remove_configuration_dir, override_iter)
-    return "_".join([version, variation, *override_iter, tuning_scheme])
+    return '_'.join([version, variation, *override_iter, tuning_scheme])
 
 
 def log_study_settings(study: optuna.Study, tune_cfg: DictConfig) -> None:
     """Log the study settings."""
     cfg_dict = OmegaConf.to_container(tune_cfg, resolve=True)
     if not isinstance(cfg_dict, dict):
-        raise ValueError("The tuning configuration must be a dictionary.")
+        raise ValueError('The tuning configuration must be a dictionary.')
 
     for key, value in cfg_dict.items():
         study.set_user_attr(str(key), value)
@@ -95,8 +91,8 @@ def visualize_study(study: optuna.Study, renderer: str) -> None:
 
 
 def _remove_base_specification(override: str) -> str:
-    return override.rsplit(".", maxsplit=1)[-1]
+    return override.rsplit('.', maxsplit=1)[-1]
 
 
 def _remove_configuration_dir(override: str) -> str:
-    return override.rsplit("/", maxsplit=1)[-1]
+    return override.rsplit('/', maxsplit=1)[-1]

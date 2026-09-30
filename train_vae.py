@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from drytorch import Test, Trainer
 
-from drytorch.lib import objectives
+from drytorch.lib.objectives import join
 
 
 from src.config import AllConfig, Experiment, get_trackers, hydra_main
@@ -30,10 +30,7 @@ else:
     Trial = Any
 
 
-DEBUG_MODE = (
-    any(module in sys.modules for module in ("pydevd", "debugpy", "pdb"))
-    or sys.gettrace() is not None
-)
+DEBUG_MODE = any(module in sys.modules for module in ('pydevd', 'debugpy')) or sys.gettrace() is not None
 
 logger = logging.getLogger(__name__)
 
@@ -61,59 +58,59 @@ def train_vae(trial: Trial | None = None) -> None:
         n_params = sum(p.numel() for p in vae.parameters())
         trainable_params = sum(p.numel() for p in vae.parameters() if p.requires_grad)
         n_buffers = sum(b.numel() for b in vae.buffers())
-        logger.info(
-            f"Model parameters: {n_params:,} (trainable: {trainable_params:,}, buffers: {n_buffers:,})"
-        )
-        model = EMAModelEpoch(
-            vae, name=f"VAE_{cfg.model.operator}", device=cfg.user.device
-        )
+        logger.info(f'Model parameters: {n_params:,} (trainable: {trainable_params:,}, buffers: {n_buffers:,})')
+        model = EMAModelEpoch(vae, name=f'VAE_{cfg.model.operator}', device=cfg.user.device)
     else:
         model = ModelEpoch(vae, device=cfg.user.device)
 
     loss = get_vae_loss(normalize=vae.normalize_sample)
     metrics = get_reconstruction_metrics(denormalize=vae.denormalize_sample)
-    loss_with_metrics = objectives.JoinLossMetrics(loss, metrics)
+    loss_with_metrics = join(loss, metrics)
     learning_schema = get_learning_schema(cfg)
-    trainer = Trainer(
+    builder = Trainer.builder(
         model,
         loader=train_loader,
         loss=loss,
         learning_schema=learning_schema,
     )
-
-    test = Test(model, loader=eval_loader, metric=loss_with_metrics)
-    if cfg.user.load_checkpoint != 0:
-        trainer.load_checkpoint(cfg.user.load_checkpoint)
-
     if not cfg.final:
-        trainer.add_validation(eval_loader)
+        builder.add_validation(eval_loader)
 
     if not cfg.final and cfg.train.early_stopping.active:
         cfg_early = cfg.train.early_stopping
-        register_early_stopping(
-            trainer, window=cfg_early.window, patience=cfg_early.patience
-        )
+        register_early_stopping(builder, window=cfg_early.window, patience=cfg_early.patience)
 
     if trial is not None:
-        register_pruning(trainer, trial)
+        register_pruning(builder, trial)
     else:
-        register_checkpointing(trainer, cfg.user.checkpoint_every or 1)
+        register_checkpointing(builder, cfg.user.checkpoint_every or 1)
+
+    trainer = builder.build()
+    if cfg.final:
+        evaluation = Test(
+            model,
+            loader=eval_loader,
+            metric=loss_with_metrics,
+        )
+    else:
+        evaluation = builder.validation
+
+    if cfg.user.load_checkpoint != 0:
+        trainer.load_checkpoint(cfg.user.load_checkpoint)
 
     trainer.train_until(cfg.train.n_epochs)
     if trial is None:
         trainer.save_checkpoint()
 
-    test()
+    evaluation()
     return
 
 
 def setup_and_train(cfg: AllConfig) -> None:
     """Set up experiment and start VAE training loop."""
-    trackers = get_trackers(cfg, debug=DEBUG_MODE)
+    trackers = get_trackers(cfg, debug_mode=DEBUG_MODE)
     resume = cfg.user.load_checkpoint != 0
-    exp = Experiment(
-        cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags
-    )
+    exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
     for tracker in trackers:
         exp.trackers.subscribe(tracker)
 
@@ -137,5 +134,5 @@ def main(cfg: AllConfig) -> None:
     return
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

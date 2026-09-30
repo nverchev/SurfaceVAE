@@ -23,10 +23,10 @@ def render_mesh(
     faces: npt.NDArray[Any],
     color: Color = BONE,
     interactive: bool = True,
-    title: str = "Mesh",
-    save_dir: pathlib.Path = pathlib.Path() / "images",
+    title: str = 'Mesh',
+    save_dir: pathlib.Path = pathlib.Path() / 'images',
     scalars: npt.NDArray[Any] | None = None,
-    cmap: str | Any = "viridis",
+    cmap: str | Any = 'viridis',
     clim: Sequence[float] | None = None,
     show_scalar_bar: bool = False,
     show_edges: bool = False,
@@ -40,15 +40,13 @@ def render_mesh(
         vtk.vtkObject.GlobalWarningDisplayOff()
 
     except ImportError:
-        print(
-            "pyvista not installed. Please install it using pip: pip install pyvista."
-        )
+        print('pyvista not installed. Please install it using pip: pip install pyvista.')
         return
 
     import matplotlib.cm as cm
 
     plotter = pv.Plotter(
-        lighting="none",
+        lighting='none',
         window_size=[1024, 1024],
         notebook=False,
         off_screen=not interactive,
@@ -65,13 +63,10 @@ def render_mesh(
         center = (min_v + max_v) / 2
         extents = max_v - min_v
         max_extent = extents.max()
-        camera_pos = center + np.array(
-            [0.8 * max_extent, 0.4 * max_extent, 2.0 * max_extent]
-        )
+        camera_pos = center + np.array([0.8 * max_extent, 0.4 * max_extent, 2.0 * max_extent])
         plotter.camera_position = [camera_pos, center, (0, 1, 0)]
         key_light = pv.Light(
-            position=center
-            + np.array([1.5 * max_extent, 1.5 * max_extent, 2.0 * max_extent]),
+            position=center + np.array([1.5 * max_extent, 1.5 * max_extent, 2.0 * max_extent]),
             focal_point=center,
             intensity=1.5,
             positional=True,
@@ -101,28 +96,28 @@ def render_mesh(
 
         mesh_pv = pv.PolyData(v[:, :3], pyvista_faces)
         if i == 0 and scalars is not None:
-            mesh_pv.point_data["scalars"] = scalars
+            mesh_pv.point_data['scalars'] = scalars
             is_rgb = scalars.ndim == 2 and scalars.shape[1] == 3
             if is_rgb:
                 plotter.add_mesh(
                     mesh_pv,
-                    scalars="scalars",
+                    scalars='scalars',
                     rgb=True,
                     smooth_shading=True,
                     show_edges=show_edges,
-                    edge_color="black",
+                    edge_color='black',
                     line_width=1,
                 )
             else:
                 plotter.add_mesh(
                     mesh_pv,
-                    scalars="scalars",
+                    scalars='scalars',
                     cmap=cm.get_cmap(cmap),
                     clim=clim,
                     show_scalar_bar=show_scalar_bar,
                     smooth_shading=True,
                     show_edges=show_edges,
-                    edge_color="black",
+                    edge_color='black',
                     line_width=1,
                 )
         else:
@@ -131,22 +126,22 @@ def render_mesh(
                 color=color,
                 smooth_shading=True,
                 show_edges=show_edges,
-                edge_color="black",
+                edge_color='black',
                 line_width=1,
             )
 
     pv.Plotter.enable_ssao(plotter, kernel_size=256)
     pv.Plotter.enable_shadows(plotter)
-    plotter.enable_anti_aliasing("msaa")
+    plotter.enable_anti_aliasing('msaa')
     if use_edl:
         pv.Plotter.enable_eye_dome_lighting(plotter)
 
     if interactive:
-        pv.Plotter.set_background(plotter, color="white")
+        pv.Plotter.set_background(plotter, color='white')
         plotter.show()
     else:
         save_dir.mkdir(exist_ok=True, parents=True)
-        file = save_dir / (title + ".png")
+        file = save_dir / (title + '.png')
         plotter.screenshot(file, window_size=(1024, 1024), transparent_background=True)
 
     plotter.close()

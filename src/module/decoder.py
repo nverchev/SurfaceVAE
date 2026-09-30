@@ -47,9 +47,7 @@ class BaseDecoder(nn.Module, metaclass=ABCMeta):
         )
         return
 
-    def _prepare_latent(
-        self, z: torch.Tensor, mean_shape: torch.Tensor
-    ) -> torch.Tensor:
+    def _prepare_latent(self, z: torch.Tensor, mean_shape: torch.Tensor) -> torch.Tensor:
         x = self.conv_shape(mean_shape.unsqueeze(0)).expand(z.size(0), -1, -1)
         features = self.dense_latent1(z)
         features = self.dense_latent2(features)

@@ -58,7 +58,7 @@ def set_objective(tune_cfg: DictConfig) -> Callable[[optuna.Trial], float]:
 @hydra.main(
     version_base=None,
     config_path=ConfigPath.TUNING_VAE.absolute(),
-    config_name="defaults",
+    config_name='defaults',
 )
 def main(tune_cfg: DictConfig) -> None:
     """Set up the study and launch the optimization."""
@@ -88,5 +88,5 @@ def main(tune_cfg: DictConfig) -> None:
     return
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

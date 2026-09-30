@@ -12,7 +12,7 @@ from pydantic import Field, model_validator
 from pydantic.dataclasses import dataclass
 from omegaconf import DictConfig
 
-from src.config.environment import EnvSettings, VERSION, get_current_branch
+from src.config.environment import EnvSettings, PROJECT_NAME, VERSION, get_current_branch
 from src.config.torch import ActClass, get_activation_cls, get_optim_cls, set_seed
 from src.config.options import (
     Datasets,
@@ -33,23 +33,23 @@ class DatasetConfig:
     """Specification for the dataset.
 
     Attributes:
-        name (Datasets): The name of the dataset
-        validation (str | None): The validation expression or subject identity
-        test (str | None): The test expression or subject identity
+        name: The name of the dataset
+        validation: The validation expression or subject identity
+        test: The test expression or subject identity
     """
 
     name: Datasets
     validation: str | None = None
     test: str | None = None
 
-    @model_validator(mode="after")
+    @model_validator(mode='after')
     def _validate_extrapolation(self) -> Self:
         if self.name == Datasets.COMA_EXTRAPOLATION:
             try:
                 self.validation = Expressions(self.validation)
                 self.test = Expressions(self.test)
             except ValueError as e:
-                msg = "Test and validation expressions must be specified for COMA_EXTRAPOLATION."
+                msg = 'Test and validation expressions must be specified for COMA_EXTRAPOLATION.'
                 raise ValueError(msg) from e
 
         if self.name == Datasets.COMA_IDENTITY:
@@ -57,7 +57,7 @@ class DatasetConfig:
                 self.validation = Identities(self.validation)
                 self.test = Identities(self.test)
             except ValueError as e:
-                msg = "Both validation and test identities must be specified for COMA_IDENTITY."
+                msg = 'Both validation and test identities must be specified for COMA_IDENTITY.'
                 raise ValueError(msg) from e
 
         return self
@@ -68,7 +68,7 @@ class DataConfig:
     """Specification for pre-processing the data.
 
     Attributes:
-        dataset (DatasetConfig): The dataset configuration
+        dataset: The dataset configuration
     """
 
     dataset: DatasetConfig
@@ -79,15 +79,15 @@ class ModelConfig:
     """Specification for the VAE model architecture.
 
     Attributes:
-        operator (ModelOperators): The name of the graph operator class
-        n_features (StrictlyPositiveInt): The number of features in the VAE blocks
-        dim_latent (StrictlyPositiveInt): The latent space dimension
-        n_blocks_encoder (StrictlyPositiveInt): Number of graph blocks in the VAE encoder
-        n_blocks_decoder (StrictlyPositiveInt): Number of graph blocks in the VAE decoder
-        activation (str): The name of the PyTorch activation class (e.g., 'ELU')
-        n_dense (StrictlyPositiveInt): The hidden number of features of the decoder for z
-        use_mean_shape (bool): Whether to use the mean shape at the start of the decoder
-        batch_norm_momentum (PositiveFloat | None): The momentum parameter for Batch Normalization layers
+        operator: The name of the graph operator class
+        n_features: The number of features in the VAE blocks
+        dim_latent: The latent space dimension
+        n_blocks_encoder: Number of graph blocks in the VAE encoder
+        n_blocks_decoder: Number of graph blocks in the VAE decoder
+        activation: The name of the PyTorch activation class (e.g., 'ELU')
+        n_dense: The hidden number of features of the decoder for z
+        use_mean_shape: Whether to use the mean shape at the start of the decoder
+        batch_norm_momentum: The momentum parameter for Batch Normalization layers
     """
 
     operator: ModelOperators
@@ -95,7 +95,7 @@ class ModelConfig:
     dim_latent: StrictlyPositiveInt = 8
     n_blocks_encoder: StrictlyPositiveInt = 2
     n_blocks_decoder: StrictlyPositiveInt = 3
-    activation: str = "ELU"
+    activation: str = 'ELU'
     n_dense: StrictlyPositiveInt = 64
     use_mean_shape: bool = True
     batch_norm_momentum: PositiveFloat | None = 0.1
@@ -111,11 +111,12 @@ class SchedulerConfig:
     """Specification for the learning rate scheduler.
 
     Attributes:
-        function (Schedulers): The name of the scheduler function
-        restart_interval (PositiveInt): The number of epochs between restarts (0 disables restarts)
-        restart_fraction (PositiveFloat): The fraction of the base learning rate when restarting (0.0 disables restarts)
-        warmup_steps (PositiveInt): The number of initial epochs with linearly increasing learning rate (0 disables warmup)
-        settings (dict): A dictionary containing default settings for the scheduler
+        function: The name of the scheduler function
+        restart_interval: The number of epochs between restarts (0 disables restarts)
+        restart_fraction: The fraction of the base learning rate when restarting (0.0 disables restarts)
+        warmup_steps: The number of initial epochs with a
+            linearly increasing learning rate (0 disables warmup)
+        settings: A dictionary containing default settings for the scheduler
     """
 
     function: Schedulers
@@ -130,11 +131,11 @@ class LearningConfig:
     """Specification for the learning scheme.
 
     Attributes:
-        optimizer_name (str): The name of the PyTorch optimizer (e.g., 'Adam', 'SGD')
-        learning_rate (PositiveFloat): The base learning rate
-        weight_decay (PositiveFloat): The weight decay parameter for the optimizer
-        scheduler (SchedulerConfig): The scheduler configuration for learning rate decay
-        opt_settings (dict): A dictionary containing default settings for the optimizer
+        optimizer_name: The name of the PyTorch optimizer (e.g., 'Adam', 'SGD')
+        learning_rate: The base learning rate
+        weight_decay: The weight decay parameter for the optimizer
+        scheduler: The scheduler configuration for learning rate decay
+        opt_settings: A dictionary containing default settings for the optimizer
     """
 
     optimizer_name: str
@@ -154,9 +155,9 @@ class EarlyStoppingConfig:
     """Specification for early stopping during training.
 
     Attributes:
-        active (bool): Whether to use the early stopping strategy
-        window (int): The number of last metrics to average
-        patience (int): The number of epochs to wait before stopping
+        active: Whether to use the early stopping strategy
+        window: The number of last metrics to average
+        patience: The number of epochs to wait before stopping
     """
 
     active: bool
@@ -169,7 +170,7 @@ class ObjectiveConfig:
     """Specification for the objective function.
 
     Attributes:
-        beta (PositiveFloat): The Laplace loss scale parameter beta.
+        beta: The Laplace loss scale parameter beta.
     """
 
     beta: PositiveFloat = 0.01
@@ -180,13 +181,13 @@ class TrainingConfig:
     """Specification for the training process.
 
     Attributes:
-        batch_size (StrictlyPositiveInt): The batch size for training
-        learn (LearningConfig): The learning configuration for training
-        n_epochs (StrictlyPositiveInt): The total number of epochs for training
-        early_stopping (EarlyStoppingConfig): The configuration for early stopping
-        loss_type (LossTypes): The loss function type
-        annealing_period (PositiveInt): Epoch period for KL divergence annealing (0 disables annealing)
-        objective (ObjectiveConfig): The objective configuration
+        batch_size: The batch size for training
+        learn: The learning configuration for training
+        n_epochs: The total number of epochs for training
+        early_stopping: The configuration for early stopping
+        loss_type: The loss function type
+        annealing_period: Epoch period for KL divergence annealing (0 disables annealing)
+        objective: The objective configuration
     """
 
     batch_size: StrictlyPositiveInt
@@ -199,10 +200,10 @@ class TrainingConfig:
 
     annealing_period: PositiveInt = 100
 
-    @model_validator(mode="after")
+    @model_validator(mode='after')
     def _check_batch_size(self) -> Self:
         if self._n_subprocesses and self.batch_size % self._n_subprocesses != 0:
-            msg = "Global batch size {} not divisible by number of devices {}."
+            msg = 'Global batch size {} not divisible by number of devices {}.'
             raise ValueError(msg.format(self.batch_size, self._n_subprocesses))
 
         return self
@@ -218,23 +219,27 @@ class TrainingConfig:
 
 @dataclass
 class PathSpecs:
-    """Path specifications for directories.
+    """Path specifications populated from environment variables.
 
     Attributes:
-        root_exp_dir (pathlib.Path): The directory containing the experiments
-        data_dir (pathlib.Path): The directory containing the datasets (the folder where the COMA_data folder is located)
-        metadata_dir (pathlib.Path): The directory containing the dataset metadata
+        data_dir: Root directory holding the datasets, shared by all versions
+            (the folder where the COMA_data folder is located).
+        metadata_dir: Root directory holding the dataset metadata.
+        root_exp_dir: Root directory under which all experiment artefacts are stored.
+
+    Note:
+        Paths are loaded from the ``.env`` file via :class:`~src.config.environment.EnvSettings`.
     """
 
     _env = EnvSettings()
-    root_exp_dir: pathlib.Path = _env.root_exp_dir
-    data_dir: pathlib.Path = _env.dataset_dir
+    data_dir: pathlib.Path = _env.data_dir
     metadata_dir: pathlib.Path = _env.metadata_dir
+    root_exp_dir: pathlib.Path = _env.root_exp_dir
 
     @property
     def version_dir(self) -> pathlib.Path:
         """The full path for the version directory."""
-        return self.root_exp_dir / f"v{VERSION}"
+        return self.root_exp_dir / f'v{VERSION}'
 
 
 @dataclass
@@ -242,11 +247,11 @@ class TrackerList:
     """List of trackers to use for logging.
 
     Attributes:
-        wandb (bool): Whether to use the Wandb tracker
-        hydra (bool): Whether to use the HydraLink tracker
-        csv (bool): Whether to use the CSVDumper tracker
-        tensorboard (bool): Whether to use the TensorBoard tracker
-        sqlalchemy (bool): Whether to use the SQLAlchemyConnection tracker
+        wandb: Whether to use the Wandb tracker
+        hydra: Whether to use the HydraLink tracker
+        csv: Whether to use the CSVDumper tracker
+        tensorboard: Whether to use the TensorBoard tracker
+        sqlalchemy: Whether to use the SQLAlchemyConnection tracker
     """
 
     wandb: bool
@@ -261,8 +266,8 @@ class HydraSettings:
     """Subset of the current hydra settings.
 
     Attributes:
-        output_dir (pathlib.Path): The Hydra run output directory
-        job_logging (DictConfig): Logging configuration used by Hydra
+        output_dir: The Hydra run output directory
+        job_logging: Logging configuration used by Hydra
     """
 
     output_dir: pathlib.Path = dataclasses.field(init=False)
@@ -274,13 +279,13 @@ class PlottingOptions:
     """Options for plotting and visualization.
 
     Attributes:
-        interactive (bool): Whether to render interactive mesh visualizations
-        sample_indices (list[PositiveInt]): List of dataset sample indices to visualize or interpolate
-        use_train (bool): Whether to evaluate on training set instead of test/val split
-        use_mean_shape (bool): Whether to use mean shape centering in visualization
-        interpolation_step_factor (float): Step scaling factor for latent space interpolation
-        interpolation_steps (PositiveInt): Number of steps in each direction for latent interpolation
-        num_eigenvectors (PositiveInt): Number of operator eigenvectors to visualize
+        interactive: Whether to render interactive mesh visualizations
+        sample_indices: List of dataset sample indices to visualize or interpolate
+        use_train: Whether to evaluate on training set instead of test/val split
+        use_mean_shape: Whether to use mean shape centering in visualization
+        interpolation_step_factor: Step scaling factor for latent space interpolation
+        interpolation_steps: Number of steps in each direction for latent interpolation
+        num_eigenvectors: Number of operator eigenvectors to visualize
     """
 
     interactive: bool
@@ -297,13 +302,13 @@ class GenerationOptions:
     """Options for the generation of meshes.
 
     Attributes:
-        batch_size (StrictlyPositiveInt): Number of random mesh samples to generate
-        bias_dim (PositiveInt): Latent dimension index to apply a constant bias
-        bias_value (float): Value of constant bias added to latent dimension
-        tour_samples_per_plane (StrictlyPositiveInt): Number of samples per plane in latent tour
-        tour_radius (float): Radius of the spherical trajectory in latent tour
-        z_max (float | None): Maximum absolute bound to clamp latent z values to avoid outliers
-        z_std (float): Standard deviation of normal distribution used for sampling z
+        batch_size: Number of random mesh samples to generate
+        bias_dim: Latent dimension index to apply a constant bias
+        bias_value: Value of constant bias added to latent dimension
+        tour_samples_per_plane: Number of samples per plane in latent tour
+        tour_radius: Radius of the spherical trajectory in latent tour
+        z_max: Maximum absolute bound to clamp latent z values to avoid outliers
+        z_std: Standard deviation of normal distribution used for sampling z
     """
 
     batch_size: StrictlyPositiveInt
@@ -320,16 +325,16 @@ class UserSettings:
     """User-specific options and preferences.
 
     Attributes:
-        cpu (bool): Whether to run computations on CPU (None/False defaults to accelerator)
-        n_workers (PositiveInt): The number of workers for data loading
-        trackers (TrackerList): The active trackers configurations
-        seed (int | None): The seed for PyTorch/NumPy randomness (None disables manual seeding)
-        checkpoint_every (PositiveInt): The number of epochs between saving checkpoints
-        on_the_fly (bool): Compute operators on-the-fly per batch instead of loading from cache
-        load_checkpoint (int): The checkpoint epoch to load (0 starts from scratch)
-        n_subprocesses (PositiveInt): Number of subprocesses for distributed training (0 for no parallelism)
-        plot (PlottingOptions): The plotting options
-        generate (GenerationOptions): The generation options
+        cpu: Whether to run computations on CPU (None/False defaults to accelerator)
+        n_workers: The number of workers for data loading
+        trackers: The active trackers configurations
+        seed: The seed for PyTorch/NumPy randomness (None disables manual seeding)
+        checkpoint_every: The number of epochs between saving checkpoints
+        on_the_fly: Compute operators on-the-fly per batch instead of loading from cache
+        load_checkpoint: The checkpoint epoch to load (0 starts from scratch)
+        n_subprocesses: Number of subprocesses for distributed training (0 for no parallelism)
+        plot: The plotting options
+        generate: The generation options
     """
 
     cpu: bool
@@ -356,7 +361,7 @@ class UserSettings:
     @property
     def device(self) -> torch.device | None:
         """The device where the model should run (None for default)."""
-        return torch.device("cpu") if self.cpu else None
+        return torch.device('cpu') if self.cpu else None
 
 
 @dataclass
@@ -364,13 +369,13 @@ class AllConfig:
     """Root specification for all experiment settings.
 
     Attributes:
-        variation (str): The name for the experiment
-        final (bool): If True, it disables validation and extra logs for the final training run
-        model (ModelConfig): VAE model architecture configuration
-        user (UserSettings): User-specific settings
-        data (DataConfig): Data pre-processing configuration
-        train (TrainingConfig): Training options
-        tags (list[str]): Descriptive tags for the experiment run
+        variation: The name for the experiment
+        final: If True, it disables validation and extra logs for the final training run
+        model: VAE model architecture configuration
+        user: User-specific settings
+        data: Data pre-processing configuration
+        train: Training options
+        tags: Descriptive tags for the experiment run
     """
 
     final: bool
@@ -379,7 +384,7 @@ class AllConfig:
     data: DataConfig
     train: TrainingConfig
     tags: list[str] = dataclasses.field(default_factory=list)
-    version: str = f"v{VERSION}"
+    version: str = f'v{VERSION}'
     variation: str | None = None
 
     @cached_property
@@ -398,16 +403,12 @@ class AllConfig:
     @property
     def name(self) -> str:
         """The full name of the experiment."""
-        return (
-            f"{self.resolved_variation}_final"
-            if self.final
-            else self.resolved_variation
-        )
+        return f'{self.resolved_variation}_final' if self.final else self.resolved_variation
 
     @property
     def project(self) -> str:
-        """Project name for logging."""
-        return "FixedGraphVariationalAutoEncoder" + str(self.version)
+        """Project name for logging, one per version."""
+        return f'{PROJECT_NAME}-{self.version}'
 
     @property
     def resolved_variation(self) -> str:

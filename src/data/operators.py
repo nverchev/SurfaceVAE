@@ -48,9 +48,7 @@ def compute_degree_inv_sqrt_matrix(W: sparse.coo_matrix) -> sparse.dia_matrix:
 # ==============================================================================
 
 
-def compute_face_edge_lengths(
-    V: np.ndarray, F: np.ndarray
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def compute_face_edge_lengths(V: np.ndarray, F: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute the three edge lengths for each face in the mesh."""
     v0 = F[:, 0]
     v1 = F[:, 1]
@@ -106,9 +104,7 @@ def compute_face_areas(F: np.ndarray, edge_distances: sparse.coo_matrix) -> np.n
     return compute_heron_area(l_v0v1, l_v1v2, l_v2v0)
 
 
-def compute_mesh_geometry(
-    V: np.ndarray, F: np.ndarray
-) -> tuple[sparse.coo_matrix, np.ndarray]:
+def compute_mesh_geometry(V: np.ndarray, F: np.ndarray) -> tuple[sparse.coo_matrix, np.ndarray]:
     """Compute the sparse distance matrix and face areas for the given mesh."""
     edge_distances = compute_edge_distances(V, F)
     face_areas = compute_face_areas(F, edge_distances)
@@ -127,9 +123,7 @@ def compute_cotangent_formula(
     return (-(l_ij**2) + l_jk**2 + l_ki**2) / (8 * face_areas)
 
 
-def compute_vertex_dual_areas(
-    faces: np.ndarray, face_areas: np.ndarray, n_vertices: int
-) -> np.ndarray:
+def compute_vertex_dual_areas(faces: np.ndarray, face_areas: np.ndarray, n_vertices: int) -> np.ndarray:
     """Sum face areas divided by 3 to vertices sharing each face."""
     v0 = faces[:, 0]
     v1 = faces[:, 1]
@@ -141,9 +135,7 @@ def compute_vertex_dual_areas(
     return vertex_dual_areas
 
 
-def compute_inverse_diagonal_matrix(
-    faces: np.ndarray, face_areas: np.ndarray, n_vertices: int
-) -> sparse.dia_matrix:
+def compute_inverse_diagonal_matrix(faces: np.ndarray, face_areas: np.ndarray, n_vertices: int) -> sparse.dia_matrix:
     """Compute the inverse diagonal dual area matrix from face areas."""
     vertex_dual_areas = compute_vertex_dual_areas(faces, face_areas, n_vertices)
     return sparse.diags(1.0 / vertex_dual_areas, 0)
@@ -229,9 +221,7 @@ def compute_quaternion_matrix_vectorized(q: np.ndarray) -> np.ndarray:
     )
 
 
-def compute_corner_edge_vectors(
-    V: np.ndarray, F: np.ndarray, corner: int
-) -> np.ndarray:
+def compute_corner_edge_vectors(V: np.ndarray, F: np.ndarray, corner: int) -> np.ndarray:
     """For a given face corner (0, 1, 2), return the opposite edge vector (v_next1 - v_next2)."""
     v_next1 = F[:, (corner + 1) % 3]
     v_next2 = F[:, (corner + 2) % 3]
@@ -245,15 +235,13 @@ def compute_block_indices(
     """Expand block row/col indices to element-wise indices for 4x4 sub-matrices."""
     dx = np.arange(4)
     dy = np.arange(4)
-    grid_x, grid_y = np.meshgrid(dx, dy, indexing="ij")
+    grid_x, grid_y = np.meshgrid(dx, dy, indexing='ij')
     rows = (4 * row_block_indices)[:, None, None] + grid_x[None, :, :]
     cols = (4 * col_block_indices)[:, None, None] + grid_y[None, :, :]
     return rows.ravel(), cols.ravel()
 
 
-def compute_dirac_base(
-    V: np.ndarray, F: np.ndarray
-) -> tuple[list[np.ndarray], list[np.ndarray], list[np.ndarray]]:
+def compute_dirac_base(V: np.ndarray, F: np.ndarray) -> tuple[list[np.ndarray], list[np.ndarray], list[np.ndarray]]:
     """Compute the indices and quaternion matrices for Dirac operators."""
     n_faces = F.shape[0]
     f2v_rows = []
@@ -289,9 +277,7 @@ def compute_graph_dirac(F: np.ndarray, n_vertices: int) -> sparse.coo_matrix:
     for corner in range(3):
         vertex_corner = F[:, corner]
         q_edge = np.zeros(4)
-        q_edge[1:] = (
-            canonical_vertices[(corner + 1) % 3] - canonical_vertices[(corner + 2) % 3]
-        )
+        q_edge[1:] = canonical_vertices[(corner + 1) % 3] - canonical_vertices[(corner + 2) % 3]
         q_mat = -compute_quaternion_matrix(q_edge)
         rows_f2v, cols_f2v = compute_block_indices(np.arange(n_faces), vertex_corner)
         f2v_rows.append(rows_f2v)
@@ -325,9 +311,7 @@ def compute_dirac(
         vertex_corner = F[:, corner]
         f2v_data.append((q_mats / (2 * face_areas[:, None, None])).ravel())
         rows_v2f, cols_v2f = compute_block_indices(vertex_corner, np.arange(n_faces))
-        v2f_data.append(
-            (-q_mats / (2 * vertex_dual_areas[vertex_corner, None, None])).ravel()
-        )
+        v2f_data.append((-q_mats / (2 * vertex_dual_areas[vertex_corner, None, None])).ravel())
         v2f_rows.append(rows_v2f)
         v2f_cols.append(cols_v2f)
 
@@ -353,9 +337,7 @@ def compute_dirac(
 # ==============================================================================
 
 
-def build_dummy_sparse_tensor(
-    shape: tuple[int, int] | None, nnz: int
-) -> sparse.coo_matrix | None:
+def build_dummy_sparse_tensor(shape: tuple[int, int] | None, nnz: int) -> sparse.coo_matrix | None:
     if shape is not None and nnz > 0:
         idx = np.arange(nnz, dtype=np.int64)
         rows = idx // shape[1]
@@ -371,9 +353,7 @@ def build_dummy_sparse_tensor(
 # ==============================================================================
 
 
-def build_normalized_graph_laplacian(
-    faces: np.ndarray, n_vertices: int
-) -> sparse.coo_matrix:
+def build_normalized_graph_laplacian(faces: np.ndarray, n_vertices: int) -> sparse.coo_matrix:
     """Build the symmetric normalised graph Laplacian L_norm = D^{-1/2} L_graph D^{-1/2}."""
     adjacency_matrix = compute_adjacency_matrix(faces, n_vertices)
     L_unnormalized = compute_laplacian(adjacency_matrix)
@@ -399,17 +379,13 @@ def build_laplace_beltrami(V: np.ndarray, F: np.ndarray) -> sparse.coo_matrix:
     return sparse.coo_matrix((normalized_data, (L.row, L.col)), shape=L.shape)
 
 
-def build_dirac(
-    V: np.ndarray, F: np.ndarray
-) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
+def build_dirac(V: np.ndarray, F: np.ndarray) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
     """Build the Dirac operator and its adjoint such that Re(DiA Di) = M^{-1}S."""
     _, face_areas = compute_mesh_geometry(V, F)
     return compute_dirac(V, F, face_areas)
 
 
-def build_dirac_stiff(
-    V: np.ndarray, F: np.ndarray
-) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
+def build_dirac_stiff(V: np.ndarray, F: np.ndarray) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
     """Build the Dirac operator and its adjoint such that Re(DiA Di) = S."""
     Di, _ = build_dirac(V, F)
     _, face_areas = compute_mesh_geometry(V, F)
@@ -420,18 +396,14 @@ def build_dirac_stiff(
     return Di_s, T
 
 
-def build_dirac_graph_norm(
-    faces: np.ndarray, n_vertices: int
-) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
+def build_dirac_graph_norm(faces: np.ndarray, n_vertices: int) -> tuple[sparse.coo_matrix, sparse.coo_matrix]:
     """Build the topology-only Dirac operator such that Re(Di^T Di) = L_norm."""
     adjacency_matrix = compute_adjacency_matrix(faces, n_vertices)
     degree_inv_sqrt_matrix = compute_degree_inv_sqrt_matrix(adjacency_matrix)
     Di_comb = compute_graph_dirac(faces, n_vertices)
     degree_inv_sqrt_diag = degree_inv_sqrt_matrix.diagonal()
     Di_graph_norm_data = Di_comb.data * degree_inv_sqrt_diag[Di_comb.col // 4]
-    Di_graph_norm = sparse.coo_matrix(
-        (Di_graph_norm_data, (Di_comb.row, Di_comb.col)), shape=Di_comb.shape
-    )
+    Di_graph_norm = sparse.coo_matrix((Di_graph_norm_data, (Di_comb.row, Di_comb.col)), shape=Di_comb.shape)
     return Di_graph_norm, Di_graph_norm.T.tocoo()
 
 
@@ -461,7 +433,7 @@ def build_operator(
     if operator == ModelOperators.dirac_graph_norm:
         return build_dirac_graph_norm(faces, vertices.shape[0])
 
-    raise ValueError("Unknown operator")
+    raise ValueError('Unknown operator')
 
 
 def get_dummy_operator(
@@ -494,7 +466,7 @@ def get_dummy_operator(
         op_adj_nnz = nnz
 
     else:
-        raise ValueError("Unknown operator")
+        raise ValueError('Unknown operator')
 
     mean_operator = build_dummy_sparse_tensor(op_shape, op_nnz)
     mean_operator_adjoint = build_dummy_sparse_tensor(op_adj_shape, op_adj_nnz)
@@ -502,9 +474,7 @@ def get_dummy_operator(
     return mean_operator, mean_operator_adjoint
 
 
-def compute_operators_on_the_fly(
-    x: torch.Tensor, operator_type: ModelOperators
-) -> tuple[torch.Tensor, torch.Tensor]:
+def compute_operators_on_the_fly(x: torch.Tensor, operator_type: ModelOperators) -> tuple[torch.Tensor, torch.Tensor]:
     """Compute sparse operators on-the-fly for a batch of vertices."""
     from src.data.coma import BaseCOMAData
 
@@ -523,12 +493,8 @@ def compute_operators_on_the_fly(
     operator_scipy = cast(sparse.coo_matrix, sparse.block_diag(computed_ops).tocoo())
     operator = scipy_sparse_to_pytorch_sparse(operator_scipy).to(x.device)
     if computed_adjs:
-        operator_adjoint_scipy = cast(
-            sparse.coo_matrix, sparse.block_diag(computed_adjs).tocoo()
-        )
-        operator_adjoint = scipy_sparse_to_pytorch_sparse(operator_adjoint_scipy).to(
-            x.device
-        )
+        operator_adjoint_scipy = cast(sparse.coo_matrix, sparse.block_diag(computed_adjs).tocoo())
+        operator_adjoint = scipy_sparse_to_pytorch_sparse(operator_adjoint_scipy).to(x.device)
     else:
         operator_adjoint = torch.empty(0, device=x.device)
 

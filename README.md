@@ -274,8 +274,8 @@ The table below shows the performance of the model on the interpolation split us
 | **SurfaceVAE (no mean shape)** | Graph Laplacian (`lap_graph_norm`) | 2.031 ± 1.862 | 36.5 | **33,779** |
 | **SurfaceVAE** | Laplace-Beltrami (`lap_beltrami`) | 0.838 ± 0.832 | 72.4 | **33,779** |
 | **SurfaceVAE** | Laplace-Beltrami Stiff (`lap_stiff`) | 0.814 ± 0.831 | 73.6 | **33,779** |
-| **SurfaceVAE** | Continuous Dirac (`dirac`) | TBD | TBD | **33,779** |
-| **SurfaceVAE** | Dirac Stiff (`dirac_stiff`) | TBD | TBD | **33,779** |
+| **SurfaceVAE** | Continuous Dirac (`dirac`) | 0.990 ± 0.932 | 65.7 | **33,779** |
+| **SurfaceVAE** | Dirac Stiff (`dirac_stiff`) | 1.000 ± 0.928 | 65.3 | **33,779** |
 | **SurfaceVAE** | Graph Dirac (`dirac_graph_norm`) | 0.988 ± 0.948 | 66.6 | **33,779** |
 | **SurfaceVAE** | Graph Laplacian (`lap_graph_norm`) | **0.768 ± 0.764** | **75.8** | **33,779** |
 

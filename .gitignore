@@ -1,6 +1,7 @@
 **/__pycache__
 *.pyc
 .venv/
+/data/
 experiments*/
 optimization_db/
 outputs/

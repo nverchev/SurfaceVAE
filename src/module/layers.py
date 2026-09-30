@@ -10,10 +10,7 @@ import torch.nn.init as init
 
 type _grad_t = tuple[torch.Tensor, ...] | torch.Tensor
 
-DEBUG_MODE = (
-    any(module in sys.modules for module in ("pydevd", "debugpy", "pdb"))
-    or sys.gettrace() is not None
-)
+DEBUG_MODE = any(module in sys.modules for module in ('pydevd', 'debugpy')) or sys.gettrace() is not None
 
 
 class LinearLayer(nn.Module):
@@ -44,9 +41,7 @@ class LinearLayer(nn.Module):
             )
 
         if DEBUG_MODE:
-            warnings.filterwarnings(
-                "ignore", message=".*Full backward hook is firing.*"
-            )
+            warnings.filterwarnings('ignore', message='.*Full backward hook is firing.*')
             self.register_forward_hook(debug_check)
             self.register_full_backward_hook(debug_check)
 
@@ -73,13 +68,11 @@ class LinearLayer(nn.Module):
         elif self.act is None:
             init.xavier_normal_(self.fc.weight, gain=1.0)
         elif isinstance(self.act, nn.Hardtanh):
-            init.xavier_normal_(self.fc.weight, gain=nn.init.calculate_gain("tanh"))
+            init.xavier_normal_(self.fc.weight, gain=nn.init.calculate_gain('tanh'))
         elif isinstance(self.act, nn.ReLU):
-            init.kaiming_normal_(self.fc.weight, nonlinearity="relu")
+            init.kaiming_normal_(self.fc.weight, nonlinearity='relu')
         elif isinstance(self.act, nn.LeakyReLU):
-            init.kaiming_normal_(
-                self.fc.weight, a=self.act.negative_slope, nonlinearity="leaky_relu"
-            )
+            init.kaiming_normal_(self.fc.weight, a=self.act.negative_slope, nonlinearity='leaky_relu')
         elif isinstance(self.act, nn.GELU):
             init.xavier_normal_(self.fc.weight, gain=1.0)
         elif isinstance(self.act, nn.ELU):
@@ -172,36 +165,24 @@ class DirResNet(nn.Module):
         self.res_f = res_f
         return
 
-    def _apply_Di(
-        self, Di: torch.Tensor, v: torch.Tensor, n_faces: int
-    ) -> torch.Tensor:
+    def _apply_Di(self, Di: torch.Tensor, v: torch.Tensor, n_faces: int) -> torch.Tensor:
         batch, n_nodes, n_inputs = v.size()
         feat4 = n_inputs // 4
         if Di.size(1) == n_nodes * 4:
             x = v.reshape(batch, n_nodes * 4, feat4).permute(1, 0, 2)
             x = Di.mm(x.reshape(n_nodes * 4, batch * feat4))
-            return (
-                x.reshape(n_faces * 4, batch, feat4)
-                .permute(1, 0, 2)
-                .reshape(batch, n_faces, n_inputs)
-            )
+            return x.reshape(n_faces * 4, batch, feat4).permute(1, 0, 2).reshape(batch, n_faces, n_inputs)
 
         x = v.view(batch * n_nodes * 4, feat4)
         return Di.mm(x).view(batch, n_faces, n_inputs)
 
-    def _apply_DiA(
-        self, DiA: torch.Tensor, f: torch.Tensor, n_nodes: int
-    ) -> torch.Tensor:
+    def _apply_DiA(self, DiA: torch.Tensor, f: torch.Tensor, n_nodes: int) -> torch.Tensor:
         batch, n_faces, n_inputs = f.size()
         feat4 = n_inputs // 4
         if DiA.size(1) == n_faces * 4:
             x = f.reshape(batch, n_faces * 4, feat4).permute(1, 0, 2)
             x = DiA.mm(x.reshape(n_faces * 4, batch * feat4))
-            return (
-                x.reshape(n_nodes * 4, batch, feat4)
-                .permute(1, 0, 2)
-                .reshape(batch, n_nodes, n_inputs)
-            )
+            return x.reshape(n_nodes * 4, batch, feat4).permute(1, 0, 2).reshape(batch, n_nodes, n_inputs)
 
         x = f.view(batch * n_faces * 4, feat4)
         return DiA.mm(x).view(batch, n_nodes, n_inputs)
@@ -209,7 +190,7 @@ class DirResNet(nn.Module):
     def forward(
         self, Di: torch.Tensor, DiA: torch.Tensor, v: torch.Tensor, f: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        batch_size, n_nodes, n_inputs = v.size()
+        _, n_nodes, _ = v.size()
         _, n_faces, _ = f.size()
         x = self._apply_Di(Di, v, n_faces)
         x = torch.cat([f, x], 2)
@@ -227,9 +208,7 @@ def global_average(x: torch.Tensor) -> torch.Tensor:
     return torch.mean(x, dim=1)
 
 
-def debug_check(
-    _not_used1: nn.Module, _not_used2: _grad_t, tensor_out: _grad_t
-) -> None:
+def debug_check(_not_used1: nn.Module, _not_used2: _grad_t, tensor_out: _grad_t) -> None:
     if isinstance(tensor_out, tuple):
         tensor = tensor_out[0]
     else:

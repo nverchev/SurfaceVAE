@@ -14,7 +14,7 @@ from omegaconf import OmegaConf, DictConfig
 
 from src.config.environment import ConfigPath
 from src.config.specs import AllConfig, HydraSettings
-from src.config.experiment import update_exp_name
+from src.config.experiment import update_variation
 
 
 def hydra_main(func: Callable[[AllConfig], None]) -> Callable[[], None]:
@@ -23,7 +23,7 @@ def hydra_main(func: Callable[[AllConfig], None]) -> Callable[[], None]:
     @hydra.main(
         version_base=None,
         config_path=str(ConfigPath.CONFIGS.absolute()),
-        config_name="defaults",
+        config_name='defaults',
     )
     @functools.wraps(func)
     def wrapper(dict_cfg: DictConfig) -> None:
@@ -32,7 +32,7 @@ def hydra_main(func: Callable[[AllConfig], None]) -> Callable[[], None]:
         cfg = cast(AllConfig, OmegaConf.to_object(dict_cfg))
         cfg.user.hydra = get_hydra_settings(hydra_dict_cfg)
         overrides = hydra_dict_cfg.overrides.task
-        update_exp_name(cfg, overrides)
+        update_variation(cfg, overrides)
         return func(cfg)
 
     return wrapper.__call__
@@ -43,20 +43,20 @@ def get_config_all(overrides: list[str] | None = None) -> AllConfig:
     GlobalHydra.instance().clear()
 
     with hydra.initialize(version_base=None, config_path=ConfigPath.CONFIGS.relative()):
-        dict_cfg = hydra.compose(config_name="defaults", overrides=overrides)
+        dict_cfg = hydra.compose(config_name='defaults', overrides=overrides)
         try:
             hydra_dict_cfg = HydraConfig.get()
             hydra_settings = get_hydra_settings(hydra_dict_cfg)
         except ValueError:
             hydra_settings = HydraSettings()
-            hydra_settings.output_dir = pathlib.Path("./outputs")
+            hydra_settings.output_dir = pathlib.Path('./outputs')
             hydra_settings.job_logging = OmegaConf.create()
 
         cfg = cast(AllConfig, OmegaConf.to_object(dict_cfg))
         cfg.user.hydra = hydra_settings
 
         if overrides is not None:
-            update_exp_name(cfg, overrides)
+            update_variation(cfg, overrides)
 
         return cfg
 
@@ -70,4 +70,4 @@ def get_hydra_settings(dict_cfg: HydraConf) -> HydraSettings:
 
 
 cs = config_store.ConfigStore.instance()
-cs.store(name="all_config", node=AllConfig)
+cs.store(name='all_config', node=AllConfig)

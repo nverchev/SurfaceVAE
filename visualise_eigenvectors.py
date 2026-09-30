@@ -47,24 +47,9 @@ def vec3_to_rgb(vecs: np.ndarray) -> np.ndarray:
         return np.full((vecs.shape[0], 3), 255, dtype=np.uint8)
 
     v = (vecs / abs_max).clip(-1.0, 1.0)
-    r = (
-        1.0
-        - np.maximum(0.0, v[:, 1])
-        - np.maximum(0.0, v[:, 2])
-        - np.maximum(0.0, -v[:, 0])
-    )
-    g = (
-        1.0
-        - np.maximum(0.0, v[:, 0])
-        - np.maximum(0.0, v[:, 2])
-        - np.maximum(0.0, -v[:, 1])
-    )
-    b = (
-        1.0
-        - np.maximum(0.0, v[:, 0])
-        - np.maximum(0.0, v[:, 1])
-        - np.maximum(0.0, -v[:, 2])
-    )
+    r = 1.0 - np.maximum(0.0, v[:, 1]) - np.maximum(0.0, v[:, 2]) - np.maximum(0.0, -v[:, 0])
+    g = 1.0 - np.maximum(0.0, v[:, 0]) - np.maximum(0.0, v[:, 2]) - np.maximum(0.0, -v[:, 1])
+    b = 1.0 - np.maximum(0.0, v[:, 0]) - np.maximum(0.0, v[:, 1]) - np.maximum(0.0, -v[:, 2])
     rgb = np.stack([r, g, b], axis=1).clip(0.0, 1.0)
     return (rgb * 255).astype(np.uint8)
 
@@ -74,7 +59,7 @@ def visualise_eigenvectors() -> None:
     cfg = Experiment.get_config()
     cfg_user = cfg.user
     interactive = cfg_user.plot.interactive
-    save_dir_base = cfg.user.path.version_dir / "images" / cfg.name / "eigenvectors"
+    save_dir_base = cfg.user.path.version_dir / 'images' / cfg.name / 'eigenvectors'
     save_dir_base.mkdir(parents=True, exist_ok=True)
     if cfg_user.plot.use_train:
         dataset = get_active_dataset().get_split(Partitions.train)
@@ -89,17 +74,15 @@ def visualise_eigenvectors() -> None:
     if sample_indices:
         for i in sample_indices:
             if i >= len(dataset):
-                raise ValueError(
-                    f"Index {i} is too large for the selected dataset of length {len(dataset)}"
-                )
+                raise ValueError(f'Index {i} is too large for the selected dataset of length {len(dataset)}')
             item = dataset[i]
-            items_to_process.append((f"sample_{i}", item[0].x.numpy()))
+            items_to_process.append((f'sample_{i}', item[0].x.numpy()))
     elif use_mean_shape:
-        items_to_process.append(("mean_shape", dataset.mean_shape.numpy()))
+        items_to_process.append(('mean_shape', dataset.mean_shape.numpy()))
     else:
         assert isinstance(dataset, Sized)
         idx = random.randint(0, len(dataset) - 1)
-        items_to_process.append((f"sample_{idx}", dataset[idx][0].x.numpy()))
+        items_to_process.append((f'sample_{idx}', dataset[idx][0].x.numpy()))
 
     operator_type = cfg.model.operator
     num_evs = cfg_user.plot.num_eigenvectors
@@ -109,9 +92,7 @@ def visualise_eigenvectors() -> None:
         if operator_type == ModelOperators.lap_beltrami:
             L_cot = build_lap_stiff(vertices, faces)
             _, face_areas = compute_mesh_geometry(vertices, faces)
-            vertex_dual_areas = compute_vertex_dual_areas(
-                faces, face_areas, vertices.shape[0]
-            )
+            vertex_dual_areas = compute_vertex_dual_areas(faces, face_areas, vertices.shape[0])
             d_inv_sqrt = 1.0 / np.sqrt(vertex_dual_areas)
             D_inv_sqrt_mat = sparse.diags(d_inv_sqrt, 0)
             L_sym = D_inv_sqrt_mat @ L_cot @ D_inv_sqrt_mat
@@ -119,7 +100,7 @@ def visualise_eigenvectors() -> None:
                 L_sym.tocsc(),
                 k=max(num_evs + 15, 25),
                 sigma=1e-2,
-                which="LM",
+                which='LM',
             )
             eigenvectors = D_inv_sqrt_mat @ eigenvectors_sym
         elif operator_type in (
@@ -130,31 +111,29 @@ def visualise_eigenvectors() -> None:
             op_data = build_operator((vertices, faces), operator_type)
             op = op_data[0]
             if op is None:
-                raise ValueError("Computed operator is None.")
+                raise ValueError('Computed operator is None.')
 
             S = op.T @ op
             eigenvalues, eigenvectors = spla.eigsh(
                 S.tocsc(),
                 k=max(num_evs + 15, 25),
                 sigma=1e-2,
-                which="LM",
+                which='LM',
             )
         else:
             op_data = build_operator((vertices, faces), operator_type)
             op = op_data[0]
             if op is None:
-                raise ValueError("Computed operator is None.")
+                raise ValueError('Computed operator is None.')
 
             eigenvalues, eigenvectors = spla.eigsh(
                 op.tocsc(),
                 k=max(num_evs + 15, 25),
                 sigma=1e-2,
-                which="LM",
+                which='LM',
             )
 
-        sorted_evals, sorted_vecs = extract_all_modes(
-            eigenvalues, eigenvectors, num_evs
-        )
+        sorted_evals, sorted_vecs = extract_all_modes(eigenvalues, eigenvectors, num_evs)
         for col in range(sorted_vecs.shape[1]):
             norm_val = np.linalg.norm(sorted_vecs[:, col])
             if norm_val > 1e-8:
@@ -163,7 +142,7 @@ def visualise_eigenvectors() -> None:
         for ev_idx in range(sorted_vecs.shape[1]):
             ev = sorted_vecs[:, ev_idx]
             ev_val = sorted_evals[ev_idx]
-            eval_str = f"{ev_val:.6f}"
+            eval_str = f'{ev_val:.6f}'
             if operator_type in (
                 ModelOperators.dirac,
                 ModelOperators.dirac_stiff,
@@ -174,7 +153,7 @@ def visualise_eigenvectors() -> None:
                 render_mesh(
                     vertices,
                     faces,
-                    title=f"eigenvector_{ev_idx + 1}_eval_{eval_str}",
+                    title=f'eigenvector_{ev_idx + 1}_eval_{eval_str}',
                     interactive=interactive,
                     save_dir=save_dir,
                     scalars=scalars,
@@ -182,10 +161,10 @@ def visualise_eigenvectors() -> None:
                 )
 
                 scalars = ev_reshaped[:, 0]
-                title = f"eigenvector_{ev_idx + 1}_real_eval_{eval_str}"
+                title = f'eigenvector_{ev_idx + 1}_real_eval_{eval_str}'
             else:
                 scalars = ev
-                title = f"eigenvector_{ev_idx + 1}_eval_{eval_str}"
+                title = f'eigenvector_{ev_idx + 1}_eval_{eval_str}'
 
             render_mesh(
                 vertices,
@@ -194,7 +173,7 @@ def visualise_eigenvectors() -> None:
                 interactive=interactive,
                 save_dir=save_dir,
                 scalars=scalars,
-                cmap="coolwarm",
+                cmap='coolwarm',
                 show_scalar_bar=False,
             )
 
@@ -203,14 +182,12 @@ def visualise_eigenvectors() -> None:
 
 @hydra_main
 def main(cfg: AllConfig) -> None:
-    exp = Experiment(
-        cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags
-    )
+    exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
     with exp.create_run(record=False):
         visualise_eigenvectors()
 
     return
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

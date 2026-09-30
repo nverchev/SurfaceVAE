@@ -6,8 +6,8 @@ from typing import NamedTuple, Self
 import torch
 
 
-class Input(NamedTuple):
-    """Input for the Fixed Graph VAE.
+class Inputs(NamedTuple):
+    """Inputs for the Fixed Graph VAE.
 
     Attributes:
         x: the input vertices (batch_size, n_vertices, 3).
@@ -20,7 +20,7 @@ class Input(NamedTuple):
     operator_adjoint: torch.Tensor | None = None
 
 
-class Target(NamedTuple):
+class Targets(NamedTuple):
     """Targets for the Fixed Graph VAE (reconstruction target).
 
     Attributes:
@@ -33,7 +33,7 @@ class Target(NamedTuple):
 
 
 @dataclasses.dataclass(init=False, slots=True)
-class Output:
+class Outputs:
     """Outputs for the Fixed Graph VAE.
 
     Attributes:
@@ -60,6 +60,7 @@ class Output:
                 setattr(self, attribute, getattr(other, attribute))
             except AttributeError:
                 pass
+
         return
 
     def __repr__(self) -> str:
@@ -69,9 +70,10 @@ class Output:
             if hasattr(self, name):
                 try:
                     value = getattr(self, name)
-                    parts.append(f"{name}={value!r}")
+                    parts.append(f'{name}={value!r}')
                 except Exception:
-                    parts.append(f"{name}=<error>")
+                    parts.append(f'{name}=<error>')
             else:
-                parts.append(f"{name}=<uninitialized>")
-        return f"{self.__class__.__name__}({', '.join(parts)})"
+                parts.append(f'{name}=<uninitialized>')
+
+        return f'{self.__class__.__name__}({", ".join(parts)})'

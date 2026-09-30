@@ -9,7 +9,7 @@ from src.data.coma import (
 )
 from src.data.dataset import get_active_dataset, get_splits
 from src.data.split import COMADatasetSplit, Partitions
-from src.data.structures import Input, Target, Output
+from src.data.structures import Inputs, Targets, Outputs
 from src.data.operators import (
     build_operator,
     get_dummy_operator,
@@ -17,19 +17,19 @@ from src.data.operators import (
 )
 
 __all__ = [
-    "Input",
-    "Target",
-    "Output",
-    "BaseCOMAData",
-    "COMAInterpolationData",
-    "COMAExtrapolationData",
-    "get_active_dataset",
-    "COMADatasetSplit",
-    "Partitions",
-    "get_splits",
-    "N_FACES",
-    "N_VERTICES",
-    "build_operator",
-    "get_dummy_operator",
-    "compute_operators_on_the_fly",
+    'N_FACES',
+    'N_VERTICES',
+    'BaseCOMAData',
+    'COMADatasetSplit',
+    'COMAExtrapolationData',
+    'COMAInterpolationData',
+    'Inputs',
+    'Outputs',
+    'Partitions',
+    'Targets',
+    'build_operator',
+    'compute_operators_on_the_fly',
+    'get_active_dataset',
+    'get_dummy_operator',
+    'get_splits',
 ]

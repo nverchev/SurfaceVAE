@@ -8,7 +8,7 @@ import torch
 
 from src.config import AllConfig, Experiment, hydra_main, ModelOperators
 from src.data import N_VERTICES, N_FACES
-from src.data.structures import Input
+from src.data.structures import Inputs
 from src.module import get_vae_module
 from src.utils.profiling import save_parameters, profile_forward, profile_backward
 from src.utils.sparse import scipy_sparse_to_pytorch_sparse
@@ -21,12 +21,10 @@ def run_profiling(cfg: AllConfig) -> None:
     """Set up the loader and model, then run profiling."""
     device = cfg.user.device
     if device is None:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = torch.accelerator.current_accelerator(check_available=True) or torch.device('cpu')
 
     vertices, faces = _create_mock_mesh()
-    mean_operator, mean_operator_adjoint = _get_mock_operators(
-        vertices, faces, cfg.model.operator
-    )
+    mean_operator, mean_operator_adjoint = _get_mock_operators(vertices, faces, cfg.model.operator)
     mean_shape = torch.from_numpy(vertices).float()
     vae = get_vae_module(
         mean_shape=mean_shape,
@@ -34,9 +32,7 @@ def run_profiling(cfg: AllConfig) -> None:
         mean_operator_adjoint=mean_operator_adjoint,
     )
     profile_dir = _get_profiling_dir()
-    inputs = _create_mock_inputs(
-        cfg.train.batch_size, mean_operator, mean_operator_adjoint, device
-    )
+    inputs = _create_mock_inputs(cfg.train.batch_size, mean_operator, mean_operator_adjoint, device)
     save_parameters(vae, profile_dir)
     vae.train()
     vae.to(device)
@@ -57,7 +53,7 @@ def _create_mock_inputs(
     mean_operator: torch.Tensor,
     mean_operator_adjoint: torch.Tensor | None,
     device: torch.device,
-) -> Input:
+) -> Inputs:
     """Create mock input namedtuple for the VAE model on the target device."""
     x = torch.randn(batch_size, N_VERTICES, 3, dtype=torch.float32, device=device)
     operator = mean_operator.to(device)
@@ -66,7 +62,7 @@ def _create_mock_inputs(
     else:
         operator_adjoint = torch.empty(0, device=device)
 
-    return Input(x=x, operator=operator, operator_adjoint=operator_adjoint)
+    return Inputs(x=x, operator=operator, operator_adjoint=operator_adjoint)
 
 
 def _create_mock_mesh() -> tuple[np.ndarray, np.ndarray]:
@@ -102,23 +98,21 @@ def _get_mock_operators(
 
 def _get_profiling_dir() -> pathlib.Path:
     exp = Experiment.get_current()
-    if "@" in exp.run.id:
-        day, time = exp.run.id.split("@")
+    if '@' in exp.run.id:
+        day, time = exp.run.id.split('@')
         run_subdir = pathlib.Path(day) / time
 
     else:
         run_subdir = pathlib.Path(exp.run.id)
 
-    profile_dir = exp.par_dir / "profile" / exp.name / run_subdir
+    profile_dir = exp.par_dir / 'profile' / exp.name / run_subdir
     profile_dir.mkdir(exist_ok=True, parents=True)
     return profile_dir
 
 
 def setup_and_profile(cfg: AllConfig) -> None:
     """Set up experiment and start VAE profiling."""
-    exp = Experiment(
-        cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags
-    )
+    exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
 
     with exp.create_run(resume=True, record=False):
         run_profiling(cfg)
@@ -133,5 +127,5 @@ def main(cfg: AllConfig) -> None:
     return
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

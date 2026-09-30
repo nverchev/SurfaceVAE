@@ -51,6 +51,6 @@ def get_splits() -> tuple[COMADatasetSplit, COMADatasetSplit]:
         splits = _get_splits()
 
     if splits is None:
-        raise RuntimeError("Splits could not be created.")
+        raise RuntimeError('Splits could not be created.')
 
     return splits
