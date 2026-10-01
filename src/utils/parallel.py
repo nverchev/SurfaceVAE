@@ -42,6 +42,9 @@ class DistributedWorker[**P, T]:
     def _setup_distributed(self, rank: int) -> None:
         os.environ['MASTER_ADDR'] = 'localhost'
         os.environ['MASTER_PORT'] = '12355'
+        if 'OMP_NUM_THREADS' not in os.environ:
+            torch.set_num_threads(max(1, (os.cpu_count() or 0) // self.world_size))
+
         torch.cuda.set_device(rank)
         acc_or_none = torch.accelerator.current_accelerator()
         acc = torch.device('cpu') if acc_or_none is None else acc_or_none
