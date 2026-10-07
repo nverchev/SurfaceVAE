@@ -4,11 +4,13 @@ import enum
 import pathlib
 import shutil
 import subprocess
+import sys
 import tomllib
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 __all__ = [
+    'DEBUG_MODE',
     'PROJECT_NAME',
     'VERSION',
     'ConfigPath',
@@ -21,6 +23,9 @@ with open(pathlib.Path(__file__).resolve().parent.parent.parent / 'pyproject.tom
 
 PROJECT_NAME: str = pyproject['project']['name']
 VERSION: str = pyproject['project']['version']
+
+# a debugger runs the process: no data of the experiment is written
+DEBUG_MODE: bool = any(module in sys.modules for module in ('pydevd', 'debugpy')) or sys.gettrace() is not None
 
 
 class EnvSettings(BaseSettings):

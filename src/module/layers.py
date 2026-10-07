@@ -1,16 +1,15 @@
 """Graph VAE layers and submodules."""
 
 import math
-import sys
 import warnings
 import torch
 import torch.nn as nn
 import torch.nn.init as init
 
+from src.config.environment import DEBUG_MODE
+
 
 type _grad_t = tuple[torch.Tensor, ...] | torch.Tensor
-
-DEBUG_MODE = any(module in sys.modules for module in ('pydevd', 'debugpy')) or sys.gettrace() is not None
 
 
 class LinearLayer(nn.Module):

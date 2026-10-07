@@ -11,7 +11,7 @@ import scipy.sparse.linalg as spla
 
 import torch
 
-from src.config import AllConfig, Experiment, hydra_main
+from src.config import AllConfig, Experiment, MeshEvent, get_trackers, hydra_main
 from src.config.options import ModelOperators
 from src.data import get_active_dataset, build_operator
 from src.data.operators import (
@@ -20,7 +20,6 @@ from src.data.operators import (
     compute_vertex_dual_areas,
 )
 from src.data.split import Partitions
-from src.utils.visualization import render_mesh
 
 logger = logging.getLogger(__name__)
 
@@ -58,9 +57,6 @@ def vec3_to_rgb(vecs: np.ndarray) -> np.ndarray:
 def visualise_eigenvectors() -> None:
     cfg = Experiment.get_config()
     cfg_user = cfg.user
-    interactive = cfg_user.plot.interactive
-    save_dir_base = cfg.user.path.version_dir / 'images' / cfg.name / 'eigenvectors'
-    save_dir_base.mkdir(parents=True, exist_ok=True)
     if cfg_user.plot.use_train:
         dataset = get_active_dataset().get_split(Partitions.train)
     else:
@@ -87,8 +83,7 @@ def visualise_eigenvectors() -> None:
     operator_type = cfg.model.operator
     num_evs = cfg_user.plot.num_eigenvectors
     for item_name, vertices in items_to_process:
-        save_dir = save_dir_base / item_name
-        save_dir.mkdir(parents=True, exist_ok=True)
+        folder = f'eigenvectors/{item_name}'
         if operator_type == ModelOperators.lap_beltrami:
             L_cot = build_lap_stiff(vertices, faces)
             _, face_areas = compute_mesh_geometry(vertices, faces)
@@ -150,14 +145,12 @@ def visualise_eigenvectors() -> None:
             ):
                 ev_reshaped = ev.reshape(-1, 4)
                 scalars = vec3_to_rgb(ev_reshaped[:, 1:])
-                render_mesh(
-                    vertices,
-                    faces,
+                MeshEvent(
+                    vertices=[vertices],
+                    faces=faces,
                     title=f'eigenvector_{ev_idx + 1}_eval_{eval_str}',
-                    interactive=interactive,
-                    save_dir=save_dir,
+                    folder=folder,
                     scalars=scalars,
-                    show_scalar_bar=False,
                 )
 
                 scalars = ev_reshaped[:, 0]
@@ -166,15 +159,13 @@ def visualise_eigenvectors() -> None:
                 scalars = ev
                 title = f'eigenvector_{ev_idx + 1}_eval_{eval_str}'
 
-            render_mesh(
-                vertices,
-                faces,
+            MeshEvent(
+                vertices=[vertices],
+                faces=faces,
                 title=title,
-                interactive=interactive,
-                save_dir=save_dir,
+                folder=folder,
                 scalars=scalars,
                 cmap='coolwarm',
-                show_scalar_bar=False,
             )
 
     return
@@ -183,6 +174,9 @@ def visualise_eigenvectors() -> None:
 @hydra_main
 def main(cfg: AllConfig) -> None:
     exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
+    for tracker in get_trackers(cfg):
+        exp.trackers.subscribe(tracker)
+
     with exp.create_run(record=False):
         visualise_eigenvectors()
 

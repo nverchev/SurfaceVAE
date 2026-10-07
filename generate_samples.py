@@ -4,10 +4,9 @@ import logging
 
 import torch
 
-from src.config import AllConfig, Experiment, hydra_main
+from src.config import AllConfig, Experiment, MeshEvent, get_trackers, hydra_main
 from src.data import get_active_dataset
 from src.train.models import load_extract_vae_module
-from src.utils.visualization import render_mesh
 
 
 @torch.inference_mode()
@@ -15,12 +14,9 @@ def generate_samples() -> None:
     """Generate and visualize random mesh samples from the latent space."""
     cfg = Experiment.get_config()
     cfg_user = cfg.user
-    interactive = cfg_user.plot.interactive
     batch_size = cfg_user.generate.batch_size
     z_max = cfg_user.generate.z_max
     z_std = cfg_user.generate.z_std
-    save_dir = cfg.user.path.version_dir / 'images' / cfg.name / 'generated'
-    save_dir.mkdir(parents=True, exist_ok=True)
     faces = get_active_dataset().get_faces()
     vae_module = load_extract_vae_module()
     logging.info(
@@ -33,12 +29,11 @@ def generate_samples() -> None:
     for i in range(batch_size):
         shape = generated_shapes[i].cpu().numpy()
         logging.info('  Rendering generated sample %d', i)
-        render_mesh(
-            shape,
-            faces,
+        MeshEvent(
+            vertices=[shape],
+            faces=faces,
             title=f'generated_sample_{i}',
-            interactive=interactive,
-            save_dir=save_dir,
+            folder='generated',
         )
 
     return
@@ -48,6 +43,9 @@ def generate_samples() -> None:
 def main(cfg: AllConfig) -> None:
     """Set up the experiment and launch the sample generation."""
     exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
+    for tracker in get_trackers(cfg):
+        exp.trackers.subscribe(tracker)
+
     with exp.create_run(resume=True):
         generate_samples()
 

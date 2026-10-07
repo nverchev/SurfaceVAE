@@ -8,12 +8,11 @@ from collections.abc import Sized
 import numpy as np
 import torch
 
-from src.config import AllConfig, Experiment, hydra_main
+from src.config import AllConfig, Experiment, MeshEvent, get_trackers, hydra_main
 from src.data import Inputs, get_active_dataset
 from src.data.split import Partitions
 from src.train.loaders import collate_coma_batch
 from src.train.models import load_extract_vae_module
-from src.utils.visualization import render_mesh
 
 ERROR_THRESHOLD = 10.0
 CLIM_MAX = 5.0
@@ -26,8 +25,6 @@ def reconstruct_samples() -> None:
     """Reconstruct and visualize selected dataset samples."""
     cfg = Experiment.get_config()
     cfg_user = cfg.user
-    interactive = cfg_user.plot.interactive
-    save_dir_base = cfg.user.path.version_dir / 'images' / cfg.name / 'reconstructed'
     if cfg_user.plot.use_train:
         partition = Partitions.train_val if cfg.final else Partitions.train
     else:
@@ -62,30 +59,16 @@ def reconstruct_samples() -> None:
         label_idx = int(item[1].label.item()) if item[1].label is not None else 0
         label_name = class_names[label_idx] if class_names else f'subject_{label_idx}'
         logging.info('Reconstructing Sample %d (label: %s):', i, label_name)
-        save_dir = save_dir_base / f'sample_{i}'
-        save_dir.mkdir(parents=True, exist_ok=True)
-        render_mesh(
-            original_vertices,
-            faces,
-            title=f'{label_name}_original',
-            interactive=interactive,
-            save_dir=save_dir,
-        )
-        render_mesh(
-            recon_vertices,
-            faces,
-            title=f'{label_name}_reconstructed',
-            interactive=interactive,
-            save_dir=save_dir,
-        )
+        folder = f'reconstructed/sample_{i}'
+        MeshEvent(vertices=[original_vertices], faces=faces, title=f'{label_name}_original', folder=folder)
+        MeshEvent(vertices=[recon_vertices], faces=faces, title=f'{label_name}_reconstructed', folder=folder)
         errors = np.linalg.norm(original_vertices - recon_vertices, axis=-1) * 1000.0
         errors = np.clip(errors, 0.0, ERROR_THRESHOLD)
-        render_mesh(
-            original_vertices,
-            faces,
-            interactive=interactive,
+        MeshEvent(
+            vertices=[original_vertices],
+            faces=faces,
             title=f'{label_name}_comparison',
-            save_dir=save_dir,
+            folder=folder,
             scalars=errors,
             cmap=CMAP,
             clim=[0.0, CLIM_MAX],
@@ -99,6 +82,9 @@ def reconstruct_samples() -> None:
 def main(cfg: AllConfig) -> None:
     """Set up the experiment and launch the sample reconstruction."""
     exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
+    for tracker in get_trackers(cfg):
+        exp.trackers.subscribe(tracker)
+
     with exp.create_run(resume=True):
         reconstruct_samples()
 

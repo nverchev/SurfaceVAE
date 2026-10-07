@@ -18,6 +18,7 @@ trackers:
   wandb: false
   sqlalchemy: false
   csv: true
+  pyvista: true
 
 # Options for random generation
 generate:

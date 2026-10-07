@@ -5,10 +5,9 @@ import logging
 import numpy as np
 import torch
 
-from src.config import AllConfig, Experiment, hydra_main
+from src.config import AllConfig, Experiment, MeshEvent, get_trackers, hydra_main
 from src.data.coma import BaseCOMAData
 from src.train.models import load_extract_vae_module
-from src.utils.visualization import render_mesh
 
 
 @torch.inference_mode()
@@ -16,9 +15,6 @@ def tour_latent_space() -> None:
     """Generate and render meshes along a closed curve on the latent sphere."""
     cfg = Experiment.get_config()
     cfg_user = cfg.user
-    interactive = cfg_user.plot.interactive
-    save_dir = cfg.user.path.version_dir / 'images' / cfg.name / 'generated' / 'tour'
-    save_dir.mkdir(parents=True, exist_ok=True)
     vae_module = load_extract_vae_module()
     device = vae_module.mean_shape.device
     faces = BaseCOMAData.get_faces()
@@ -56,12 +52,11 @@ def tour_latent_space() -> None:
                 j + 1,
                 n_steps_per_plane,
             )
-            render_mesh(
-                recon_vertices,
-                faces,
+            MeshEvent(
+                vertices=[recon_vertices],
+                faces=faces,
                 title=f'tour_step_{global_step:03d}',
-                interactive=interactive,
-                save_dir=save_dir,
+                folder='generated/tour',
             )
             global_step += 1
 
@@ -72,6 +67,9 @@ def tour_latent_space() -> None:
 def main(cfg: AllConfig) -> None:
     """Set up the experiment and launch latent space touring."""
     exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
+    for tracker in get_trackers(cfg):
+        exp.trackers.subscribe(tracker)
+
     with exp.create_run(resume=True):
         tour_latent_space()
 

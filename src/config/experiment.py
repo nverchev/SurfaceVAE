@@ -10,6 +10,7 @@ import drytorch
 from drytorch.core import tracking
 from drytorch.trackers import logging
 
+from src.config.environment import DEBUG_MODE
 from src.config.specs import AllConfig
 
 
@@ -19,7 +20,7 @@ class Experiment(drytorch.Experiment[AllConfig]):
     pass
 
 
-def get_trackers(cfg: AllConfig, debug_mode: bool = False) -> list[tracking.Tracker]:
+def get_trackers(cfg: AllConfig, debug_mode: bool = DEBUG_MODE) -> list[tracking.Tracker]:
     """Get trackers according to the user configuration."""
     cfg_trackers = cfg.user.trackers
     cfg_hydra = cfg.user.hydra
@@ -76,18 +77,29 @@ def get_trackers(cfg: AllConfig, debug_mode: bool = False) -> list[tracking.Trac
             engine = sqlalchemy.create_engine(f'sqlite:///{engine_path}')
             tracker_list.append(SQLConnection(engine=engine))
 
+    if cfg_trackers.pyvista:
+        try:
+            from src.trackers.pyvista import MeshTracker
+
+        except ImportError as err:
+            warnings.warn(f'PyVista not installed, skipping. {err}', stacklevel=2)
+
+        else:
+            tracker_list.append(MeshTracker(interactive=cfg.user.plot.interactive))
+
     return tracker_list
 
 
 def update_variation(cfg: AllConfig, overrides: list[str]) -> None:
     """Adds the overrides to the name for the experiment."""
-    overrides = [
+    filtered_overrides = [
         override
         for override in overrides
         if override.split('.')[0] != 'user' and override.split('=')[0] not in ('final', 'variation')
     ]
-    cfg.variation = '_'.join([cfg.resolved_variation, *overrides]).replace('/', '_')
-    cfg.tags = overrides
+    sorted_overrides = sorted(filtered_overrides)
+    cfg.variation = '_'.join([cfg.resolved_variation, *sorted_overrides]).replace('/', '_')
+    cfg.tags = sorted_overrides
     return
 
 

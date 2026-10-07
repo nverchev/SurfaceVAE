@@ -252,6 +252,7 @@ class TrackerList:
         csv: Whether to use the CSVDumper tracker
         tensorboard: Whether to use the TensorBoard tracker
         sqlalchemy: Whether to use the SQLAlchemyConnection tracker
+        pyvista: Whether to draw the meshes the scripts publish
     """
 
     wandb: bool
@@ -259,6 +260,7 @@ class TrackerList:
     csv: bool
     tensorboard: bool
     sqlalchemy: bool
+    pyvista: bool = True
 
 
 @dataclasses.dataclass

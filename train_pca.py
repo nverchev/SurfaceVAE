@@ -1,7 +1,6 @@
 """Main script for running the PCA experiment on the dataset."""
 
 import logging
-import sys
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -10,6 +9,7 @@ from sklearn.decomposition import PCA
 from drytorch.core.log_events import MetricEvent
 
 from src.config import AllConfig, Experiment, get_trackers, hydra_main
+from src.config.environment import DEBUG_MODE
 from src.data import get_splits
 
 if TYPE_CHECKING:
@@ -17,8 +17,6 @@ if TYPE_CHECKING:
 else:
     Trial = Any
 
-
-DEBUG_MODE = any(module in sys.modules for module in ('pydevd', 'debugpy')) or sys.gettrace() is not None
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +64,7 @@ def train_pca() -> None:
 
 def setup_and_train(cfg: AllConfig) -> None:
     """Set up experiment and start PCA fit."""
-    trackers = get_trackers(cfg, debug_mode=DEBUG_MODE)
+    trackers = get_trackers(cfg)
     resume = cfg.user.load_checkpoint != 0
     exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
     for tracker in trackers:

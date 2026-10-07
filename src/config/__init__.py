@@ -1,5 +1,6 @@
 """Configuration initialization."""
 
+from src.config.events import MeshEvent
 from src.config.specs import AllConfig
 from src.config.environment import PROJECT_NAME, VERSION, ConfigPath
 from src.config.experiment import Experiment, get_trackers, set_tuning_logging
@@ -12,6 +13,7 @@ __all__ = [
     'AllConfig',
     'ConfigPath',
     'Experiment',
+    'MeshEvent',
     'ModelOperators',
     'get_config_all',
     'get_trackers',
