@@ -19,7 +19,7 @@ class BaseDecoder(nn.Module, metaclass=ABCMeta):
         self.n_features = cfg.model.n_features
         self.n_dense = cfg.model.n_dense
         self.dim_latent = cfg.model.dim_latent
-        self.act = cfg.model.activation_cls()
+        self.act = cfg.model.act_cls()
         self.momentum = cfg.model.batch_norm_momentum
         self.conv_shape = LinearLayer(3, self.n_features, act=nn.Hardtanh())
         self.conv_post_latent = LinearLayer(
@@ -144,9 +144,9 @@ def get_decoder() -> BaseDecoder:
     cfg = Experiment.get_config()
     operator_type = cfg.model.operator
     if operator_type in (
-        ModelOperators.dirac,
-        ModelOperators.dirac_stiff,
-        ModelOperators.dirac_graph_norm,
+        ModelOperators.DIRAC,
+        ModelOperators.DIRAC_STIFF,
+        ModelOperators.DIRAC_GRAPH_NORM,
     ):
         return DirDecoder()
 

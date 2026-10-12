@@ -10,7 +10,7 @@ import drytorch
 from drytorch.core import tracking
 from drytorch.trackers import logging
 
-from src.config.environment import DEBUG_MODE
+from src.config.environment import DEBUG_MODE, get_current_branch
 from src.config.specs import AllConfig
 
 
@@ -90,17 +90,26 @@ def get_trackers(cfg: AllConfig, debug_mode: bool = DEBUG_MODE) -> list[tracking
     return tracker_list
 
 
-def update_variation(cfg: AllConfig, overrides: list[str]) -> None:
-    """Adds the overrides to the name for the experiment."""
+def get_variation(variation: object, overrides: list[str], /) -> tuple[str, list[str]]:
+    """Add the overrides to the variation of the experiment.
+
+    Args:
+        variation: variation of the configuration, the current git branch when unset; the command
+            line gives numbers as numbers.
+        overrides: raw Hydra task override strings.
+
+    Returns:
+        The variation followed by the overrides, and the overrides as tags.
+    """
     filtered_overrides = [
         override
         for override in overrides
         if override.split('.')[0] != 'user' and override.split('=')[0] not in ('final', 'variation')
     ]
     sorted_overrides = sorted(filtered_overrides)
-    cfg.variation = '_'.join([cfg.resolved_variation, *sorted_overrides]).replace('/', '_')
-    cfg.tags = sorted_overrides
-    return
+    base = str(variation) if variation is not None else get_current_branch()
+    name = '_'.join([base, *sorted_overrides]).replace('/', '_')
+    return name, sorted_overrides
 
 
 def set_tuning_logging() -> None:

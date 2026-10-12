@@ -1,9 +1,8 @@
 defaults:
-  - all_config
-  - model: vae
-  - user: user_settings
-  - data: default_data
-  - train: default_train
+  - model: model
+  - user: user
+  - data: data
+  - train: train
   - _self_
 
 variation:

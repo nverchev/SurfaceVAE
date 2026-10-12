@@ -8,8 +8,10 @@ from collections.abc import Sized
 import numpy as np
 import torch
 
+from drytorch.lib import loading
+
 from src.config import AllConfig, Experiment, MeshEvent, get_trackers, hydra_main
-from src.data import Inputs, get_active_dataset
+from src.data import get_active_dataset
 from src.data.split import Partitions
 from src.train.loaders import collate_coma_batch
 from src.train.models import load_extract_vae_module
@@ -41,22 +43,16 @@ def reconstruct_samples() -> None:
         assert isinstance(dataset, Sized)
         sample_indices = random.sample(range(len(dataset)), min(8, len(dataset)))
 
-    for i in sample_indices:
-        assert isinstance(dataset, Sized)
-        if i >= len(dataset):
-            raise ValueError(f'Index {i} is too large for the selected dataset of length {len(dataset)}')
-
-        item = dataset[i]
-        inputs, _ = collate_coma_batch([item])
-        x_dev = inputs.x.to(device)
-        op_dev = inputs.operator.to(device) if inputs.operator is not None else None
-        op_adj_dev = inputs.operator_adjoint.to(device) if inputs.operator_adjoint is not None else None
-        batch_input = Inputs(x=x_dev, operator=op_dev, operator_adjoint=op_adj_dev)
-        outputs = vae_module(batch_input)
-        recon_mu = vae_module.denormalize_sample(outputs.recon_mu)
-        recon_vertices = recon_mu.squeeze(0).cpu().numpy()
-        original_vertices = item[0].x.numpy()
-        label_idx = int(item[1].label.item()) if item[1].label is not None else 0
+    inputs, targets = loading.take_from_dataset(
+        dataset, indices=sample_indices, device=device, collate_fn=collate_coma_batch
+    )
+    outputs = vae_module(inputs)
+    originals = inputs.x.cpu().numpy()
+    reconstructions = vae_module.denormalize_sample(outputs.recon_mu).cpu().numpy()
+    labels = targets.label.tolist()
+    for i, original_vertices, recon_vertices, label_idx in zip(
+        sample_indices, originals, reconstructions, labels, strict=True
+    ):
         label_name = class_names[label_idx] if class_names else f'subject_{label_idx}'
         logging.info('Reconstructing Sample %d (label: %s):', i, label_name)
         folder = f'reconstructed/sample_{i}'

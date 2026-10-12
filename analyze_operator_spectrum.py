@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 def is_topology_only_operator(operator_type: ModelOperators) -> bool:
     """Check if the operator depends purely on graph topology (fixed connectivity)."""
     return operator_type in (
-        ModelOperators.lap_graph_norm,
-        ModelOperators.dirac_graph_norm,
+        ModelOperators.LAP_GRAPH_NORM,
+        ModelOperators.DIRAC_GRAPH_NORM,
     )
 
 
@@ -42,7 +42,7 @@ def compute_sample_spectrum(
     num_evs: int,
 ) -> np.ndarray:
     """Compute sorted eigenvalues for a given mesh and operator type."""
-    if operator_type == ModelOperators.lap_beltrami:
+    if operator_type == ModelOperators.LAP_BELTRAMI:
         L_cot = build_lap_stiff(vertices, faces)
         _, face_areas = compute_mesh_geometry(vertices, faces)
         vertex_dual_areas = compute_vertex_dual_areas(faces, face_areas, vertices.shape[0])
@@ -56,9 +56,9 @@ def compute_sample_spectrum(
             which='LM',
         )
     elif operator_type in (
-        ModelOperators.dirac,
-        ModelOperators.dirac_stiff,
-        ModelOperators.dirac_graph_norm,
+        ModelOperators.DIRAC,
+        ModelOperators.DIRAC_STIFF,
+        ModelOperators.DIRAC_GRAPH_NORM,
     ):
         op_data = build_operator((vertices, faces), operator_type)
         op = op_data[0]

@@ -7,10 +7,10 @@ from functools import cached_property
 from typing import Any, Annotated, Self
 
 import torch
+import torch.nn as nn
 
-from pydantic import Field, model_validator
+from pydantic import BeforeValidator, Field, model_validator
 from pydantic.dataclasses import dataclass
-from omegaconf import DictConfig
 
 from src.config.environment import EnvSettings, PROJECT_NAME, VERSION, get_current_branch
 from src.config.torch import ActClass, get_activation_cls, get_optim_cls, set_seed
@@ -23,12 +23,14 @@ from src.config.options import (
     Schedulers,
 )
 
+ActivationClass = Annotated[ActClass, BeforeValidator(get_activation_cls)]
+OptimizerClass = Annotated[type[torch.optim.Optimizer], BeforeValidator(get_optim_cls)]
 PositiveInt = Annotated[int, Field(ge=0)]
 StrictlyPositiveInt = Annotated[int, Field(gt=0)]
 PositiveFloat = Annotated[float, Field(ge=0)]
 
 
-@dataclass
+@dataclass(frozen=True)
 class DatasetConfig:
     """Specification for the dataset.
 
@@ -46,16 +48,16 @@ class DatasetConfig:
     def _validate_extrapolation(self) -> Self:
         if self.name == Datasets.COMA_EXTRAPOLATION:
             try:
-                self.validation = Expressions(self.validation)
-                self.test = Expressions(self.test)
+                Expressions(self.validation)
+                Expressions(self.test)
             except ValueError as e:
                 msg = 'Test and validation expressions must be specified for COMA_EXTRAPOLATION.'
                 raise ValueError(msg) from e
 
         if self.name == Datasets.COMA_IDENTITY:
             try:
-                self.validation = Identities(self.validation)
-                self.test = Identities(self.test)
+                Identities(self.validation)
+                Identities(self.test)
             except ValueError as e:
                 msg = 'Both validation and test identities must be specified for COMA_IDENTITY.'
                 raise ValueError(msg) from e
@@ -63,7 +65,7 @@ class DatasetConfig:
         return self
 
 
-@dataclass
+@dataclass(frozen=True)
 class DataConfig:
     """Specification for pre-processing the data.
 
@@ -74,7 +76,7 @@ class DataConfig:
     dataset: DatasetConfig
 
 
-@dataclass
+@dataclass(frozen=True)
 class ModelConfig:
     """Specification for the VAE model architecture.
 
@@ -84,7 +86,7 @@ class ModelConfig:
         dim_latent: The latent space dimension
         n_blocks_encoder: Number of graph blocks in the VAE encoder
         n_blocks_decoder: Number of graph blocks in the VAE decoder
-        activation: The name of the PyTorch activation class (e.g., 'ELU')
+        act_cls: Class of the activation, written by its name.
         n_dense: The hidden number of features of the decoder for z
         use_mean_shape: Whether to use the mean shape at the start of the decoder
         batch_norm_momentum: The momentum parameter for Batch Normalization layers
@@ -95,18 +97,13 @@ class ModelConfig:
     dim_latent: StrictlyPositiveInt = 8
     n_blocks_encoder: StrictlyPositiveInt = 2
     n_blocks_decoder: StrictlyPositiveInt = 3
-    activation: str = 'ELU'
+    act_cls: ActivationClass = nn.ELU
     n_dense: StrictlyPositiveInt = 64
     use_mean_shape: bool = True
     batch_norm_momentum: PositiveFloat | None = 0.1
 
-    def __post_init__(self) -> None:
-        """Resolve activation class from name."""
-        self.activation_cls: ActClass = get_activation_cls(self.activation)
-        return
 
-
-@dataclass
+@dataclass(frozen=True)
 class SchedulerConfig:
     """Specification for the learning rate scheduler.
 
@@ -126,31 +123,26 @@ class SchedulerConfig:
     settings: dict[str, Any] = dataclasses.field(default_factory=dict)
 
 
-@dataclass
+@dataclass(frozen=True)
 class LearningConfig:
     """Specification for the learning scheme.
 
     Attributes:
-        optimizer_name: The name of the PyTorch optimizer (e.g., 'Adam', 'SGD')
+        optimizer: PyTorch optimizer, written by its name.
         learning_rate: The base learning rate
         weight_decay: The weight decay parameter for the optimizer
         scheduler: The scheduler configuration for learning rate decay
         opt_settings: A dictionary containing default settings for the optimizer
     """
 
-    optimizer_name: str
+    optimizer: OptimizerClass
     learning_rate: PositiveFloat
     weight_decay: PositiveFloat
     scheduler: SchedulerConfig
     opt_settings: dict[str, Any] = dataclasses.field(default_factory=dict)
 
-    def __post_init__(self) -> None:
-        """Resolve optimizer class from name."""
-        self.optimizer_cls = get_optim_cls(self.optimizer_name)
-        return
 
-
-@dataclass
+@dataclass(frozen=True)
 class EarlyStoppingConfig:
     """Specification for early stopping during training.
 
@@ -165,7 +157,7 @@ class EarlyStoppingConfig:
     patience: int = 10
 
 
-@dataclass
+@dataclass(frozen=True)
 class ObjectiveConfig:
     """Specification for the objective function.
 
@@ -176,7 +168,7 @@ class ObjectiveConfig:
     beta: PositiveFloat = 0.01
 
 
-@dataclass
+@dataclass(frozen=True)
 class TrainingConfig:
     """Specification for the training process.
 
@@ -217,7 +209,7 @@ class TrainingConfig:
         return self.batch_size // self._n_subprocesses
 
 
-@dataclass
+@dataclass(frozen=True)
 class PathSpecs:
     """Path specifications populated from environment variables.
 
@@ -242,7 +234,7 @@ class PathSpecs:
         return self.root_exp_dir / f'v{VERSION}'
 
 
-@dataclass
+@dataclass(frozen=True)
 class TrackerList:
     """List of trackers to use for logging.
 
@@ -263,7 +255,7 @@ class TrackerList:
     pyvista: bool = True
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class HydraSettings:
     """Subset of the current hydra settings.
 
@@ -272,11 +264,11 @@ class HydraSettings:
         job_logging: Logging configuration used by Hydra
     """
 
-    output_dir: pathlib.Path = dataclasses.field(init=False)
-    job_logging: DictConfig = dataclasses.field(init=False)
+    output_dir: pathlib.Path = pathlib.Path('outputs')
+    job_logging: Any = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class PlottingOptions:
     """Options for plotting and visualization.
 
@@ -299,7 +291,7 @@ class PlottingOptions:
     num_eigenvectors: PositiveInt = 5
 
 
-@dataclass
+@dataclass(frozen=True)
 class GenerationOptions:
     """Options for the generation of meshes.
 
@@ -322,7 +314,7 @@ class GenerationOptions:
     z_std: float = 1.0
 
 
-@dataclass
+@dataclass(frozen=True)
 class UserSettings:
     """User-specific options and preferences.
 
@@ -337,6 +329,8 @@ class UserSettings:
         n_subprocesses: Number of subprocesses for distributed training (0 for no parallelism)
         plot: The plotting options
         generate: The generation options
+        hydra: The Hydra runtime settings
+        path: The paths for data and experiments
     """
 
     cpu: bool
@@ -350,8 +344,8 @@ class UserSettings:
     on_the_fly: bool = False
     load_checkpoint: int = 0
     n_subprocesses: PositiveInt = 0
-    hydra = HydraSettings()
-    path = PathSpecs()
+    hydra: HydraSettings = dataclasses.field(default_factory=HydraSettings)
+    path: PathSpecs = dataclasses.field(default_factory=PathSpecs)
 
     def __post_init__(self) -> None:
         """Set seed for PyTorch and NumPy."""
@@ -366,7 +360,7 @@ class UserSettings:
         return torch.device('cpu') if self.cpu else None
 
 
-@dataclass
+@dataclass(frozen=True)
 class AllConfig:
     """Root specification for all experiment settings.
 
@@ -386,7 +380,7 @@ class AllConfig:
     data: DataConfig
     train: TrainingConfig
     tags: list[str] = dataclasses.field(default_factory=list)
-    version: str = f'v{VERSION}'
+    version: str = dataclasses.field(default=f'v{VERSION}', init=False)
     variation: str | None = None
 
     @cached_property

@@ -415,22 +415,22 @@ def build_operator(
 ) -> tuple[sparse.coo_matrix, sparse.coo_matrix | None]:
     """Process a single shape (vertices, faces) into operators in a vectorized manner."""
     vertices, faces = sample
-    if operator == ModelOperators.lap_graph_norm:
+    if operator == ModelOperators.LAP_GRAPH_NORM:
         return build_normalized_graph_laplacian(faces, vertices.shape[0]), None
 
-    if operator == ModelOperators.lap_stiff:
+    if operator == ModelOperators.LAP_STIFF:
         return build_lap_stiff(vertices, faces), None
 
-    if operator == ModelOperators.lap_beltrami:
+    if operator == ModelOperators.LAP_BELTRAMI:
         return build_laplace_beltrami(vertices, faces), None
 
-    if operator == ModelOperators.dirac:
+    if operator == ModelOperators.DIRAC:
         return build_dirac(vertices, faces)
 
-    if operator == ModelOperators.dirac_stiff:
+    if operator == ModelOperators.DIRAC_STIFF:
         return build_dirac_stiff(vertices, faces)
 
-    if operator == ModelOperators.dirac_graph_norm:
+    if operator == ModelOperators.DIRAC_GRAPH_NORM:
         return build_dirac_graph_norm(faces, vertices.shape[0])
 
     raise ValueError('Unknown operator')
@@ -440,9 +440,9 @@ def get_dummy_operator(
     faces: np.ndarray, n_vertices: int, operator_type: ModelOperators
 ) -> tuple[sparse.coo_matrix, sparse.coo_matrix | None]:
     if operator_type in (
-        ModelOperators.lap_graph_norm,
-        ModelOperators.lap_stiff,
-        ModelOperators.lap_beltrami,
+        ModelOperators.LAP_GRAPH_NORM,
+        ModelOperators.LAP_STIFF,
+        ModelOperators.LAP_BELTRAMI,
     ):
         row, col = compute_directed_edges(faces)
         edges = np.unique(np.stack([row, col], axis=1), axis=0)
@@ -454,9 +454,9 @@ def get_dummy_operator(
         op_adj_nnz = 0
 
     elif operator_type in (
-        ModelOperators.dirac,
-        ModelOperators.dirac_stiff,
-        ModelOperators.dirac_graph_norm,
+        ModelOperators.DIRAC,
+        ModelOperators.DIRAC_STIFF,
+        ModelOperators.DIRAC_GRAPH_NORM,
     ):
         n_faces = faces.shape[0]
         nnz = 48 * n_faces

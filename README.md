@@ -48,7 +48,7 @@ performing extreme facial expressions, consistently registered on a shared graph
 
 ### Configure the data path
 
-Edit `configs/experiment/user/user_settings.yaml` and set `data_dir` to point to the folder where `COMA_data` is located, or set the environment variable `DATASET_DIR` in a `.env` file at the project root:
+Edit `configs/experiment/user/user.yaml` and set `data_dir` to point to the folder where `COMA_data` is located, or set the environment variable `DATASET_DIR` in a `.env` file at the project root:
 
 ```dotenv
 DATASET_DIR=/path/to/data_parent_folder

@@ -37,7 +37,10 @@ def collate_coma_batch(batch: list[tuple[Inputs, Targets]]) -> tuple[Inputs, Tar
             operator_adjoint = torch_sparse_block_diag(operators_adjoint)
 
     inputs = Inputs(x=x, operator=operator, operator_adjoint=operator_adjoint)
-    targets = Targets(x=torch.stack([item[1].x for item in batch], 0))
+    targets = Targets(
+        x=torch.stack([item[1].x for item in batch], 0),
+        label=torch.stack([item[1].label for item in batch], 0),
+    )
     return inputs, targets
 
 

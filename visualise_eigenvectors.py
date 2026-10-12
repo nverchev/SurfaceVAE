@@ -11,6 +11,8 @@ import scipy.sparse.linalg as spla
 
 import torch
 
+from drytorch.lib import loading
+
 from src.config import AllConfig, Experiment, MeshEvent, get_trackers, hydra_main
 from src.config.options import ModelOperators
 from src.data import get_active_dataset, build_operator
@@ -19,6 +21,7 @@ from src.data.operators import (
     compute_mesh_geometry,
     compute_vertex_dual_areas,
 )
+from src.train.loaders import collate_coma_batch
 from src.data.split import Partitions
 
 logger = logging.getLogger(__name__)
@@ -68,11 +71,10 @@ def visualise_eigenvectors() -> None:
 
     items_to_process = []
     if sample_indices:
-        for i in sample_indices:
-            if i >= len(dataset):
-                raise ValueError(f'Index {i} is too large for the selected dataset of length {len(dataset)}')
-            item = dataset[i]
-            items_to_process.append((f'sample_{i}', item[0].x.numpy()))
+        inputs, _ = loading.take_from_dataset(dataset, indices=sample_indices, collate_fn=collate_coma_batch)
+        for i, vertices in zip(sample_indices, inputs.x.numpy(), strict=True):
+            items_to_process.append((f'sample_{i}', vertices))
+
     elif use_mean_shape:
         items_to_process.append(('mean_shape', dataset.mean_shape.numpy()))
     else:
@@ -84,7 +86,7 @@ def visualise_eigenvectors() -> None:
     num_evs = cfg_user.plot.num_eigenvectors
     for item_name, vertices in items_to_process:
         folder = f'eigenvectors/{item_name}'
-        if operator_type == ModelOperators.lap_beltrami:
+        if operator_type == ModelOperators.LAP_BELTRAMI:
             L_cot = build_lap_stiff(vertices, faces)
             _, face_areas = compute_mesh_geometry(vertices, faces)
             vertex_dual_areas = compute_vertex_dual_areas(faces, face_areas, vertices.shape[0])
@@ -99,9 +101,9 @@ def visualise_eigenvectors() -> None:
             )
             eigenvectors = D_inv_sqrt_mat @ eigenvectors_sym
         elif operator_type in (
-            ModelOperators.dirac,
-            ModelOperators.dirac_stiff,
-            ModelOperators.dirac_graph_norm,
+            ModelOperators.DIRAC,
+            ModelOperators.DIRAC_STIFF,
+            ModelOperators.DIRAC_GRAPH_NORM,
         ):
             op_data = build_operator((vertices, faces), operator_type)
             op = op_data[0]
@@ -139,9 +141,9 @@ def visualise_eigenvectors() -> None:
             ev_val = sorted_evals[ev_idx]
             eval_str = f'{ev_val:.6f}'
             if operator_type in (
-                ModelOperators.dirac,
-                ModelOperators.dirac_stiff,
-                ModelOperators.dirac_graph_norm,
+                ModelOperators.DIRAC,
+                ModelOperators.DIRAC_STIFF,
+                ModelOperators.DIRAC_GRAPH_NORM,
             ):
                 ev_reshaped = ev.reshape(-1, 4)
                 scalars = vec3_to_rgb(ev_reshaped[:, 1:])

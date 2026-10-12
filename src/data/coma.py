@@ -130,8 +130,8 @@ class BaseCOMAData(metaclass=ConfigCached):
 
     def _precompute_all_operators(self) -> None:
         operator_is_constant = self.operator_type in (
-            ModelOperators.lap_graph_norm,
-            ModelOperators.dirac_graph_norm,
+            ModelOperators.LAP_GRAPH_NORM,
+            ModelOperators.DIRAC_GRAPH_NORM,
         )
         should_compute_on_the_fly = not operator_is_constant and self.on_the_fly
         if should_compute_on_the_fly:
@@ -292,8 +292,8 @@ class BaseCOMAData(metaclass=ConfigCached):
     ]:
         """Load vertices, faces, operators, and adjoint operators from the HDF5 archive."""
         operator_is_constant = self.operator_type in (
-            ModelOperators.lap_graph_norm,
-            ModelOperators.dirac_graph_norm,
+            ModelOperators.LAP_GRAPH_NORM,
+            ModelOperators.DIRAC_GRAPH_NORM,
         )
         should_compute_on_the_fly = not operator_is_constant and self.on_the_fly
         group_name = (
@@ -319,11 +319,11 @@ class BaseCOMAData(metaclass=ConfigCached):
 
             if should_compute_on_the_fly:
                 adjoint_operator = None
-            elif self.operator_type == ModelOperators.dirac_graph_norm:
+            elif self.operator_type == ModelOperators.DIRAC_GRAPH_NORM:
                 adjoint_operator = [op_const.T] * vertices.shape[0]
             elif self.operator_type in (
-                ModelOperators.dirac,
-                ModelOperators.dirac_stiff,
+                ModelOperators.DIRAC,
+                ModelOperators.DIRAC_STIFF,
             ):
                 adj_name = f'{partition.name}/{H5Keys.OPERATORS_ADJOINT}/{self.operator_type.name}'
                 if self.lazy_load:

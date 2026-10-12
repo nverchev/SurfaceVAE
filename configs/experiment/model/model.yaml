@@ -3,6 +3,7 @@ n_features: 32
 dim_latent: 8
 n_blocks_encoder: 2
 n_blocks_decoder: 4
-activation: ELU
+act_cls: ELU
 n_dense: 128
+use_mean_shape: true
 batch_norm_momentum: 0.1

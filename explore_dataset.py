@@ -7,9 +7,12 @@ from collections.abc import Sized
 
 import torch
 
+from drytorch.lib import loading
+
 from src.config import AllConfig, Experiment, MeshEvent, get_trackers, hydra_main
 from src.data import get_active_dataset
 from src.data.split import Partitions
+from src.train.loaders import collate_coma_batch
 
 
 @torch.inference_mode()
@@ -29,16 +32,10 @@ def explore_dataset() -> None:
         assert isinstance(dataset, Sized)
         sample_indices = random.sample(range(len(dataset)), min(16, len(dataset)))
 
-    for i in sample_indices:
-        assert isinstance(dataset, Sized)
-        if i >= len(dataset):
-            raise ValueError(f'Index {i} is too large for the selected dataset of length {len(dataset)}')
-
-        inputs, targets = dataset[i]
-        label_idx = int(targets.label.item()) if targets.label is not None else 0
+    inputs, targets = loading.take_from_dataset(dataset, indices=sample_indices, collate_fn=collate_coma_batch)
+    for i, vertices, label_idx in zip(sample_indices, inputs.x.numpy(), targets.label.tolist(), strict=True):
         label_name = class_names[label_idx] if class_names else f'subject_{label_idx}'
         logging.info('Exploring Dataset for Sample %d (label: %s):', i, label_name)
-        vertices = inputs.x.numpy()
         MeshEvent(
             vertices=[vertices],
             faces=faces,

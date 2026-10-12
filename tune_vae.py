@@ -26,10 +26,10 @@ def set_objective(tune_cfg: DictConfig) -> Callable[[optuna.Trial], float]:
 
     def objective(trial: optuna.Trial) -> float:
         """Set up the experiment and launch the training cycle."""
-        overrides = suggest_overrides(tune_cfg, trial)
-        trial_cfg = get_config_all(overrides)
-        trial_cfg.train.n_epochs = tune_cfg.n_epochs
-        trial_cfg.user.seed = tune_cfg.seed
+        overrides = list(suggest_overrides(tune_cfg, trial))
+        seed = 'null' if tune_cfg.seed is None else tune_cfg.seed
+        overrides += [f'train.n_epochs={tune_cfg.n_epochs}', f'user.seed={seed}']
+        trial_cfg = get_config_all(overrides=[*tune_cfg.overrides, *overrides])
         exp = Experiment(
             trial_cfg,
             name=trial_cfg.name,

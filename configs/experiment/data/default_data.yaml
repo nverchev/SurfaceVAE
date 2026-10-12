@@ -1,3 +1,0 @@
-defaults:
-  - dataset: default_dataset
-  - _self_
