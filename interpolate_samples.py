@@ -82,7 +82,7 @@ def main(cfg: ExperimentConfig) -> None:
     for tracker in get_trackers(cfg):
         exp.trackers.subscribe(tracker)
 
-    with exp.create_run(resume=True, record=False):
+    with exp.create_run(resume=True, run_id=cfg.user.run_id, record=False):
         interpolate_samples()
 
     return

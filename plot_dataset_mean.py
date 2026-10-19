@@ -30,7 +30,7 @@ def main(cfg: ExperimentConfig) -> None:
     for tracker in get_trackers(cfg):
         exp.trackers.subscribe(tracker)
 
-    with exp.create_run(resume=True):
+    with exp.create_run(resume=True, run_id=cfg.user.run_id):
         plot_dataset_mean()
     return
 
