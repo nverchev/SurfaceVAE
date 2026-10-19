@@ -30,7 +30,7 @@ class LazyH5SparseTensors(Sequence[torch.Tensor]):
     def __init__(self, h5_path: str | pathlib.Path, group_path: str) -> None:
         self.h5_path = h5_path
         self.group_path = group_path
-        with h5py.File(self.h5_path, 'r') as f:
+        with h5py.File(self.h5_path, 'r', locking=False) as f:
             group = get_h5_group(f, self.group_path)
             row = get_h5_dataset(group, SparseKeys.ROW)[:]
             col = get_h5_dataset(group, SparseKeys.COL)[:]
@@ -46,7 +46,7 @@ class LazyH5SparseTensors(Sequence[torch.Tensor]):
 
         current_pid = os.getpid()
         if self._f is None or self._pid != current_pid:
-            self._f = h5py.File(self.h5_path, 'r')
+            self._f = h5py.File(self.h5_path, 'r', locking=False)
             self._pid = current_pid
         return self._f
 
