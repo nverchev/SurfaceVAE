@@ -11,17 +11,8 @@ from src.data import get_databuilder, get_dummy_operator, N_VERTICES
 from src.utils.sparse import scipy_sparse_to_pytorch_sparse
 
 
-class LogEpochMixin(Model[Inputs, Outputs]):
-    """Mixin to log the epoch to the outputs."""
-
-    def __call__(self, inputs: Inputs) -> Outputs:
-        out = super().__call__(inputs)
-        out.model_epoch = self.epoch
-        return out
-
-
-class ModelEpoch(LogEpochMixin, Model[Inputs, Outputs]):
-    """Model with epoch logging.
+class VAEModel(Model[Inputs, Outputs]):
+    """Model wrapping the VAE.
 
     Attributes:
         module: the VAE.
@@ -30,8 +21,8 @@ class ModelEpoch(LogEpochMixin, Model[Inputs, Outputs]):
     module: BaseVAE
 
 
-class EMAModelEpoch(LogEpochMixin, EMAModel[Inputs, Outputs]):
-    """EMA Model with epoch logging.
+class VAEEMAModel(EMAModel[Inputs, Outputs], VAEModel):
+    """VAE with exponential moving average weights.
 
     Attributes:
         module: the VAE.
@@ -55,7 +46,7 @@ def load_extract_vae_module() -> BaseVAE:
         mean_operator=mean_operator,
         mean_operator_adjoint=mean_operator_adjoint,
     ).eval()
-    model = EMAModelEpoch(vae, name=f'VAE_{cfg.model.operator}', device=cfg.user.device)
-    epoch = cfg.user.load_checkpoint or -1  # changes default to load last epoch
+    model = VAEEMAModel(vae, name=f'VAE_{cfg.model.operator}', device=cfg.user.device)
+    epoch = cfg.user.load or -1  # changes default to load last epoch
     model.load_state(epoch)
     return model.averaged_module

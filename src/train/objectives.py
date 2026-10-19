@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import math
-from typing import Self, override
+from typing import Any, Self, override
 from collections.abc import Callable
 
 import torch
 
+from drytorch.core import protocols as p
 from drytorch.lib import accumulators
 from drytorch.lib.objectives import (
     Loss,
@@ -113,12 +114,16 @@ def get_kld() -> LossWithMetrics[Outputs, Targets]:
     return Loss(_kld, name='KLD')
 
 
-def get_annealing() -> Loss[Outputs, Targets]:
-    """Get the reverse annealing component."""
+def get_annealing(model: p.ModelProtocol[Any, Any], /) -> Loss[Outputs, Targets]:
+    """Get the reverse annealing component.
+
+    Args:
+        model: the model whose epoch sets the weight.
+    """
     annealing_period = Experiment.get_config().train.annealing_period
 
     def _annealing(outputs: Outputs, _: Targets) -> torch.Tensor:
-        time_fraction = torch.tensor(outputs.model_epoch / annealing_period, device=outputs.recon_mu.device)
+        time_fraction = torch.tensor(model.epoch / annealing_period, device=outputs.recon_mu.device)
         time_fraction = torch.clamp(time_fraction, 0.0, 1.0)
         return 0.5 * (1.0 - torch.cos(time_fraction * math.pi))
 
@@ -126,18 +131,22 @@ def get_annealing() -> Loss[Outputs, Targets]:
 
 
 def get_vae_loss(
+    model: p.ModelProtocol[Any, Any],
+    /,
+    *,
     normalize: Callable[[torch.Tensor], torch.Tensor],
 ) -> LossWithMetrics[Outputs, Targets]:
     """Get VAE loss, composed with drytorch natural syntax.
 
     Args:
+        model: the model the loss trains, whose epoch sets the annealing.
         normalize: callable to normalize target tensors.
     """
     cfg = Experiment.get_config()
     nll = get_nll(normalize)
     kld = get_kld()
     if cfg.train.annealing_period > 0:
-        annealing = get_annealing()
+        annealing = get_annealing(model)
         loss = nll + kld * annealing
     else:
         loss = nll + kld

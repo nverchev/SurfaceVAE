@@ -116,7 +116,6 @@ class BaseVAE(nn.Module):
         return self.decoder(z, mean_operator, mean_operator_adjoint, mean_shape)
 
     def forward(self, inputs: Inputs) -> Outputs:
-        out = Outputs()
         sample = self.normalize_sample(inputs.x)
         raw_operator = inputs.operator
         raw_operator_adjoint = inputs.operator_adjoint
@@ -125,8 +124,8 @@ class BaseVAE(nn.Module):
 
         operator = self.normalize_operator(raw_operator)
         operator_adjoint = self.normalize_operator(raw_operator_adjoint)
-        out.mu, out.logvar = self.encode(sample, inputs.x, operator, operator_adjoint).chunk(2, dim=-1)
-        out.z = self.sample(out.mu, out.logvar) if self.training else out.mu
+        mu, logvar = self.encode(sample, inputs.x, operator, operator_adjoint).chunk(2, dim=-1)
+        z = self.sample(mu, logvar) if self.training else mu
         if self.use_mean_shape:
             decoder_mean_shape = self.normalize_sample(self.mean_shape)
         else:
@@ -134,9 +133,8 @@ class BaseVAE(nn.Module):
 
         mean_operator = self.normalize_operator(self.mean_operator)
         mean_operator_adjoint = self.normalize_operator(self.mean_operator_adjoint)
-        out.recon_mu = self.decode(out.z, mean_operator, mean_operator_adjoint, decoder_mean_shape)
-        out.recon_logvar = self.recon_logvar
-        return out
+        recon_mu = self.decode(z, mean_operator, mean_operator_adjoint, decoder_mean_shape)
+        return Outputs(recon_mu, self.recon_logvar, mu, logvar, z)
 
     def generate_sample(
         self,
@@ -151,10 +149,9 @@ class BaseVAE(nn.Module):
         if z_std is None:
             z_std = cfg.user.generate.z_std
 
-        out = Outputs()
-        out.z = z_std * torch.randn(n_samples, self.dim_latent, device=self.mean_shape.device)
+        z = z_std * torch.randn(n_samples, self.dim_latent, device=self.mean_shape.device)
         if z_max is not None and z_max > 0:
-            out.z = torch.clamp(out.z, min=-z_max, max=z_max)
+            z = torch.clamp(z, min=-z_max, max=z_max)
 
         if self.use_mean_shape:
             decoder_mean_shape = self.normalize_sample(self.mean_shape)
@@ -163,7 +160,7 @@ class BaseVAE(nn.Module):
 
         mean_operator = self.normalize_operator(self.mean_operator)
         mean_operator_adjoint = self.normalize_operator(self.mean_operator_adjoint)
-        recon_mu = self.decode(out.z, mean_operator, mean_operator_adjoint, decoder_mean_shape)
+        recon_mu = self.decode(z, mean_operator, mean_operator_adjoint, decoder_mean_shape)
         return self.denormalize_sample(recon_mu)
 
     def normalize_sample(self, sample: torch.Tensor) -> torch.Tensor:

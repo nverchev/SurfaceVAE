@@ -61,7 +61,7 @@ class COMASplit(DataSplit):
         faces: np.ndarray,
         operator: Sequence[torch.Tensor] | None,
         adjoint_operator: Sequence[torch.Tensor] | None,
-        labels: np.ndarray | None = None,
+        labels: np.ndarray,
         class_names: list[str] | None = None,
     ) -> None:
         super().__init__()
@@ -132,6 +132,6 @@ class COMASplit(DataSplit):
             operator_adjoint = None
 
         inputs = Inputs(x=sample, operator=operator, operator_adjoint=operator_adjoint)
-        label = torch.tensor(self.labels[index]) if self.labels is not None else torch.empty(0)
+        label = torch.tensor(self.labels[index])
         targets = Targets(x=sample, label=label)
         return inputs, targets

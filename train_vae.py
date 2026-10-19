@@ -9,13 +9,13 @@ from drytorch.lib.objectives import join
 
 
 from src.config import ExperimentConfig, Experiment, hydra_main
-from src.trackers import get_trackers
+from src.trackers import get_trackers, save_learning_curves
 from src.config.environment import DEBUG_MODE
 from src.data import get_splits
 from src.module import get_vae_module
 from src.train import (
-    ModelEpoch,
-    EMAModelEpoch,
+    VAEEMAModel,
+    VAEModel,
     get_learning_schema,
     COMADataLoader,
     get_vae_loss,
@@ -58,11 +58,11 @@ def train_vae(trial: Trial | None = None) -> None:
         trainable_params = sum(p.numel() for p in vae.parameters() if p.requires_grad)
         n_buffers = sum(b.numel() for b in vae.buffers())
         logger.info(f'Model parameters: {n_params:,} (trainable: {trainable_params:,}, buffers: {n_buffers:,})')
-        model = EMAModelEpoch(vae, name=f'VAE_{cfg.model.operator}', device=cfg.user.device)
+        model = VAEEMAModel(vae, name=f'VAE_{cfg.model.operator}', device=cfg.user.device)
     else:
-        model = ModelEpoch(vae, device=cfg.user.device)
+        model = VAEModel(vae, device=cfg.user.device)
 
-    loss = get_vae_loss(normalize=vae.normalize_sample)
+    loss = get_vae_loss(model, normalize=vae.normalize_sample)
     metrics = get_reconstruction_metrics(denormalize=vae.denormalize_sample)
     loss_with_metrics = join(loss, metrics)
     learning_schema = get_learning_schema(cfg)
@@ -94,8 +94,8 @@ def train_vae(trial: Trial | None = None) -> None:
     else:
         evaluation = builder.validation
 
-    if cfg.user.load_checkpoint != 0:
-        trainer.load_checkpoint(cfg.user.load_checkpoint)
+    if cfg.user.load != 0:
+        trainer.load_checkpoint(cfg.user.load)
 
     trainer.train_until(cfg.train.n_epochs)
     if trial is None:
@@ -108,13 +108,14 @@ def train_vae(trial: Trial | None = None) -> None:
 def setup_and_train(cfg: ExperimentConfig) -> None:
     """Set up experiment and start VAE training loop."""
     trackers = get_trackers(cfg)
-    resume = cfg.user.load_checkpoint != 0
+    resume = cfg.user.load != 0 or cfg.user.run_id is not None
     exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
     for tracker in trackers:
         exp.trackers.subscribe(tracker)
 
-    with exp.create_run(resume=resume, record=not DEBUG_MODE):
+    with exp.create_run(resume=resume, run_id=cfg.user.run_id, record=not DEBUG_MODE):
         train_vae()
+        save_learning_curves(trackers, f'VAE_{cfg.model.operator}', show=cfg.user.plot.show)
 
     return
 

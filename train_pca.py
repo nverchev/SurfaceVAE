@@ -66,12 +66,12 @@ def train_pca() -> None:
 def setup_and_train(cfg: ExperimentConfig) -> None:
     """Set up experiment and start PCA fit."""
     trackers = get_trackers(cfg)
-    resume = cfg.user.load_checkpoint != 0
+    resume = cfg.user.load != 0 or cfg.user.run_id is not None
     exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
     for tracker in trackers:
         exp.trackers.subscribe(tracker)
 
-    with exp.create_run(resume=resume, record=not DEBUG_MODE):
+    with exp.create_run(resume=resume, run_id=cfg.user.run_id, record=not DEBUG_MODE):
         train_pca()
 
     return
