@@ -8,7 +8,8 @@ from sklearn.decomposition import PCA
 
 from drytorch.core.log_events import MetricEvent
 
-from src.config import AllConfig, Experiment, get_trackers, hydra_main
+from src.config import ExperimentConfig, Experiment, hydra_main
+from src.trackers import get_trackers
 from src.config.environment import DEBUG_MODE
 from src.data import get_splits
 
@@ -62,7 +63,7 @@ def train_pca() -> None:
     return
 
 
-def setup_and_train(cfg: AllConfig) -> None:
+def setup_and_train(cfg: ExperimentConfig) -> None:
     """Set up experiment and start PCA fit."""
     trackers = get_trackers(cfg)
     resume = cfg.user.load_checkpoint != 0
@@ -77,7 +78,7 @@ def setup_and_train(cfg: AllConfig) -> None:
 
 
 @hydra_main
-def main(cfg: AllConfig) -> None:
+def main(cfg: ExperimentConfig) -> None:
     """Entry point for training."""
     n_processes = cfg.user.n_subprocesses
     if n_processes:

@@ -11,7 +11,8 @@ from omegaconf import DictConfig
 from drytorch.contrib.optuna import get_final_value, suggest_overrides
 from drytorch.core.exceptions import ConvergenceError
 
-from src.config import ConfigPath, Experiment, get_config_all, set_tuning_logging
+from src.config import ConfigPath, Experiment, get_experiment_config
+from src.trackers import set_tuning_logging
 from src.utils.tuning import (
     get_study_name,
     impute_failed_trial,
@@ -29,7 +30,7 @@ def set_objective(tune_cfg: DictConfig) -> Callable[[optuna.Trial], float]:
         overrides = list(suggest_overrides(tune_cfg, trial))
         seed = 'null' if tune_cfg.seed is None else tune_cfg.seed
         overrides += [f'train.n_epochs={tune_cfg.n_epochs}', f'user.seed={seed}']
-        trial_cfg = get_config_all(overrides=[*tune_cfg.overrides, *overrides])
+        trial_cfg = get_experiment_config(overrides=[*tune_cfg.overrides, *overrides])
         exp = Experiment(
             trial_cfg,
             name=trial_cfg.name,

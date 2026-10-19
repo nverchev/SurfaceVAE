@@ -8,7 +8,8 @@ from drytorch import Test, Trainer
 from drytorch.lib.objectives import join
 
 
-from src.config import AllConfig, Experiment, get_trackers, hydra_main
+from src.config import ExperimentConfig, Experiment, hydra_main
+from src.trackers import get_trackers
 from src.config.environment import DEBUG_MODE
 from src.data import get_splits
 from src.module import get_vae_module
@@ -104,7 +105,7 @@ def train_vae(trial: Trial | None = None) -> None:
     return
 
 
-def setup_and_train(cfg: AllConfig) -> None:
+def setup_and_train(cfg: ExperimentConfig) -> None:
     """Set up experiment and start VAE training loop."""
     trackers = get_trackers(cfg)
     resume = cfg.user.load_checkpoint != 0
@@ -119,7 +120,7 @@ def setup_and_train(cfg: AllConfig) -> None:
 
 
 @hydra_main
-def main(cfg: AllConfig) -> None:
+def main(cfg: ExperimentConfig) -> None:
     """Entry point for training."""
     n_processes = cfg.user.n_subprocesses
     if n_processes:

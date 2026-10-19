@@ -7,7 +7,7 @@ import torch
 from src.config import Experiment
 from src.data.structures import Inputs, Outputs
 from src.module.vae import BaseVAE, get_vae_module
-from src.data import get_active_dataset, get_dummy_operator, N_VERTICES
+from src.data import get_databuilder, get_dummy_operator, N_VERTICES
 from src.utils.sparse import scipy_sparse_to_pytorch_sparse
 
 
@@ -31,7 +31,7 @@ class EMAModelEpoch(LogEpochMixin, EMAModel[Inputs, Outputs]):
 def load_extract_vae_module() -> BaseVAE:
     """Load and extract the VAE module from the EMA model."""
     cfg = Experiment.get_config()
-    faces = get_active_dataset().get_faces()
+    faces = get_databuilder().get_faces()
     op, op_adj = get_dummy_operator(faces, N_VERTICES, cfg.model.operator)
     mean_operator = scipy_sparse_to_pytorch_sparse(op) if op is not None else None
     mean_operator_adjoint = scipy_sparse_to_pytorch_sparse(op_adj) if op_adj is not None else None

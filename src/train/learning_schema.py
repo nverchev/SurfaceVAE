@@ -4,7 +4,7 @@ from drytorch import LearningSchema
 from drytorch.lib import schedulers
 
 from src.config.options import Schedulers
-from src.config.specs import AllConfig, SchedulerConfig
+from src.config.specs import ExperimentConfig, SchedulerConfig
 
 
 def get_scheduler(config: SchedulerConfig) -> schedulers.AbstractScheduler:
@@ -26,7 +26,7 @@ def get_scheduler(config: SchedulerConfig) -> schedulers.AbstractScheduler:
     return scheduler.compose(warmup).compose(restart)
 
 
-def get_learning_schema(cfg: AllConfig) -> LearningSchema:
+def get_learning_schema(cfg: ExperimentConfig) -> LearningSchema:
     """Return configured learning scheme for training."""
     config = cfg.train.learn
     opt_defaults = {'weight_decay': config.weight_decay, **config.opt_settings}
