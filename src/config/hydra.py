@@ -13,11 +13,11 @@ from omegaconf import OmegaConf, DictConfig
 from pydantic import TypeAdapter
 
 from src.config.environment import ConfigPath
-from src.config.specs import AllConfig, HydraSettings
+from src.config.specs import ExperimentConfig, HydraSettings
 from src.config.experiment import get_variation
 
 
-def hydra_main(func: Callable[[AllConfig], None]) -> Callable[[], None]:
+def hydra_main(func: Callable[[ExperimentConfig], None]) -> Callable[[], None]:
     """Start hydra run and Converts dict_cfg to ConfigAll."""
 
     @hydra.main(
@@ -35,7 +35,7 @@ def hydra_main(func: Callable[[AllConfig], None]) -> Callable[[], None]:
     return wrapper.__call__
 
 
-def get_config_all(overrides: list[str] | None = None) -> AllConfig:
+def get_experiment_config(overrides: list[str] | None = None) -> ExperimentConfig:
     """Get hydra configuration without starting a run."""
     GlobalHydra.instance().clear()
 
@@ -57,10 +57,10 @@ def get_hydra_settings(dict_cfg: HydraConf) -> HydraSettings:
     )
 
 
-def _validate(dict_cfg: DictConfig, settings: HydraSettings, overrides: list[str] | None) -> AllConfig:
+def _validate(dict_cfg: DictConfig, settings: HydraSettings, overrides: list[str] | None) -> ExperimentConfig:
     values = cast(dict[str, Any], OmegaConf.to_container(dict_cfg, resolve=True))
     values['user']['hydra'] = settings
     if overrides is not None:
         values['variation'], values['tags'] = get_variation(values.get('variation'), overrides)
 
-    return TypeAdapter(AllConfig).validate_python(values, extra='forbid')
+    return TypeAdapter(ExperimentConfig).validate_python(values, extra='forbid')

@@ -4,7 +4,7 @@ import dataclasses
 import pathlib
 
 from functools import cached_property
-from typing import Any, Annotated, Self
+from typing import Any, Annotated, Self, Literal
 
 import torch
 import torch.nn as nn
@@ -296,7 +296,8 @@ class GenerationOptions:
     """Options for the generation of meshes.
 
     Attributes:
-        batch_size: Number of random mesh samples to generate
+        batch_size: Number of random meshes to generate, and of random samples the visualizations show
+            when no sample indices are given.
         bias_dim: Latent dimension index to apply a constant bias
         bias_value: Value of constant bias added to latent dimension
         tour_samples_per_plane: Number of samples per plane in latent tour
@@ -355,13 +356,13 @@ class UserSettings:
         return
 
     @property
-    def device(self) -> torch.device | None:
-        """The device where the model should run (None for default)."""
-        return torch.device('cpu') if self.cpu else None
+    def device(self) -> torch.device | Literal['auto']:
+        """Compute device: ``cpu`` when forced, ``'auto'`` to use the accelerator when available."""
+        return torch.device('cpu') if self.cpu else 'auto'
 
 
 @dataclass(frozen=True)
-class AllConfig:
+class ExperimentConfig:
     """Root specification for all experiment settings.
 
     Attributes:

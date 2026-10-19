@@ -4,8 +4,9 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 
-from src.config import Experiment, MeshEvent
-from src.config.hydra import get_config_all
+from src.config import Experiment
+from src.train.events import MeshEvent
+from src.config.hydra import get_experiment_config
 from src.trackers.pyvista import MeshTracker
 
 FACES = np.array([[0, 1, 2]])
@@ -14,7 +15,7 @@ VERTICES = np.zeros((3, 3))
 
 def test_mesh_event_notifies_the_tracker() -> None:
     """Publishing a mesh event draws it through a plotter."""
-    exp = Experiment(get_config_all(), par_dir='/tmp/experiments')
+    exp = Experiment(get_experiment_config(), par_dir='/tmp/experiments')
     tracker = MeshTracker(interactive=False)
     exp.trackers.subscribe(tracker)
 
@@ -28,7 +29,7 @@ def test_mesh_event_notifies_the_tracker() -> None:
 
 def test_the_folder_of_an_event_is_a_subdirectory() -> None:
     """A mesh event files its drawing under the folder it names."""
-    exp = Experiment(get_config_all(), par_dir='/tmp/experiments')
+    exp = Experiment(get_experiment_config(), par_dir='/tmp/experiments')
     tracker = MeshTracker(interactive=False)
     exp.trackers.subscribe(tracker)
 
@@ -44,7 +45,7 @@ def test_the_folder_of_an_event_is_a_subdirectory() -> None:
 
 def test_an_interactive_tracker_opens_a_window() -> None:
     """An interactive tracker shows the meshes instead of writing them."""
-    exp = Experiment(get_config_all(), par_dir='/tmp/experiments')
+    exp = Experiment(get_experiment_config(), par_dir='/tmp/experiments')
     tracker = MeshTracker(interactive=True)
     exp.trackers.subscribe(tracker)
 

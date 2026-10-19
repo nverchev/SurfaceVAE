@@ -15,7 +15,7 @@ from numpy import typing as npt
 from drytorch.core import log_events
 from drytorch.trackers.base_classes import Dumper
 
-from src.config.events import MeshEvent
+from src.train.events import MeshEvent
 
 __all__ = ['MeshTracker']
 
