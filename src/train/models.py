@@ -21,11 +21,25 @@ class LogEpochMixin(Model[Inputs, Outputs]):
 
 
 class ModelEpoch(LogEpochMixin, Model[Inputs, Outputs]):
-    """Model with epoch logging."""
+    """Model with epoch logging.
+
+    Attributes:
+        module: the VAE.
+    """
+
+    module: BaseVAE
 
 
 class EMAModelEpoch(LogEpochMixin, EMAModel[Inputs, Outputs]):
-    """EMA Model with epoch logging."""
+    """EMA Model with epoch logging.
+
+    Attributes:
+        module: the VAE.
+        averaged_module: the VAE with the averaged weights.
+    """
+
+    module: BaseVAE
+    averaged_module: BaseVAE
 
 
 def load_extract_vae_module() -> BaseVAE:
@@ -44,6 +58,4 @@ def load_extract_vae_module() -> BaseVAE:
     model = EMAModelEpoch(vae, name=f'VAE_{cfg.model.operator}', device=cfg.user.device)
     epoch = cfg.user.load_checkpoint or -1  # changes default to load last epoch
     model.load_state(epoch)
-    ema_vae = model.averaged_module
-    assert isinstance(ema_vae, BaseVAE)
-    return ema_vae
+    return model.averaged_module
