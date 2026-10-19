@@ -14,9 +14,9 @@ import scipy.sparse.linalg as spla
 import torch
 from tqdm import tqdm
 
-from src.config import AllConfig, Experiment, hydra_main
+from src.config import ExperimentConfig, Experiment, hydra_main
 from src.config.options import ModelOperators
-from src.data import build_operator, get_active_dataset
+from src.data import build_operator, get_databuilder
 from src.data.operators import (
     build_lap_stiff,
     compute_mesh_geometry,
@@ -100,30 +100,39 @@ def analyze_operator_spectrum() -> None:
     else:
         partition = Partitions.test if cfg.final else Partitions.val
 
-    dataset = get_active_dataset().get_split(partition)
-    faces = dataset.faces
+    split = get_databuilder().get_split(partition)
+    faces = split.faces
     num_evs = cfg_user.plot.num_eigenvectors
     if num_evs < 20:
         num_evs = 20
 
-    n_samples = len(cast(Sized, dataset))
+    n_samples = len(cast(Sized, split))
     all_eigenvalues = np.zeros((n_samples, num_evs))
     logger.info(f"Analyzing spectrum for operator '{operator_type.value}' on {n_samples} samples...")
     if is_topology_only_operator(operator_type):
-        dummy_vertices = dataset[0][0].x.numpy()
+        dummy_vertices = split[0][0].x.numpy()
         single_spectrum = compute_sample_spectrum(dummy_vertices, faces, operator_type, num_evs)
         all_eigenvalues[:] = single_spectrum
         logger.info(f"Operator '{operator_type.value}' is topology-only; spectrum computed once.")
 
     else:
         for i in tqdm(range(n_samples), desc=f'Spectrum computation ({operator_type.value})'):
-            item = dataset[i]
+            item = split[i]
             vertices = item[0].x.numpy()
             all_eigenvalues[i] = compute_sample_spectrum(vertices, faces, operator_type, num_evs)
 
     _save_csv_outputs(all_eigenvalues, operator_type, save_dir)
     _plot_and_save_distribution(all_eigenvalues, operator_type, save_dir)
     _print_summary(all_eigenvalues, operator_type)
+    return
+
+
+@hydra_main
+def main(cfg: ExperimentConfig) -> None:
+    exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
+    with exp.create_run(record=False):
+        analyze_operator_spectrum()
+
     return
 
 
@@ -215,15 +224,6 @@ def _print_summary(
         logger.info(f'{k + 1:<10}{means[k]:<14.6f}{stds[k]:<14.6f}{mins[k]:<14.6f}{maxs[k]:<14.6f}')
 
     logger.info('=' * 60)
-    return
-
-
-@hydra_main
-def main(cfg: AllConfig) -> None:
-    exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
-    with exp.create_run(record=False):
-        analyze_operator_spectrum()
-
     return
 
 

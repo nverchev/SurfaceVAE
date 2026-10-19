@@ -13,9 +13,11 @@ import torch
 
 from drytorch.lib import loading
 
-from src.config import AllConfig, Experiment, MeshEvent, get_trackers, hydra_main
+from src.config import ExperimentConfig, Experiment, hydra_main
+from src.trackers import get_trackers
+from src.train.events import MeshEvent
 from src.config.options import ModelOperators
-from src.data import get_active_dataset, build_operator
+from src.data import get_databuilder, build_operator
 from src.data.operators import (
     build_lap_stiff,
     compute_mesh_geometry,
@@ -61,26 +63,26 @@ def visualise_eigenvectors() -> None:
     cfg = Experiment.get_config()
     cfg_user = cfg.user
     if cfg_user.plot.use_train:
-        dataset = get_active_dataset().get_split(Partitions.train)
+        split = get_databuilder().get_split(Partitions.train)
     else:
-        dataset = get_active_dataset().get_split(Partitions.test)
+        split = get_databuilder().get_split(Partitions.test)
 
-    faces = dataset.faces
+    faces = split.faces
     sample_indices = cfg_user.plot.sample_indices
     use_mean_shape = cfg_user.plot.use_mean_shape
 
     items_to_process = []
     if sample_indices:
-        inputs, _ = loading.take_from_dataset(dataset, indices=sample_indices, collate_fn=collate_coma_batch)
-        for i, vertices in zip(sample_indices, inputs.x.numpy(), strict=True):
-            items_to_process.append((f'sample_{i}', vertices))
+        _, (inputs, _) = loading.take_from_dataset(split, indices=sample_indices, collate_fn=collate_coma_batch)
+        for i, vertices in zip(sample_indices, inputs.x.unbind(), strict=True):
+            items_to_process.append((f'sample_{i}', vertices.numpy()))
 
     elif use_mean_shape:
-        items_to_process.append(('mean_shape', dataset.mean_shape.numpy()))
+        items_to_process.append(('mean_shape', split.mean_shape.numpy()))
     else:
-        assert isinstance(dataset, Sized)
-        idx = random.randint(0, len(dataset) - 1)
-        items_to_process.append((f'sample_{idx}', dataset[idx][0].x.numpy()))
+        assert isinstance(split, Sized)
+        idx = random.randint(0, len(split) - 1)
+        items_to_process.append((f'sample_{idx}', split[idx][0].x.numpy()))
 
     operator_type = cfg.model.operator
     num_evs = cfg_user.plot.num_eigenvectors
@@ -174,7 +176,7 @@ def visualise_eigenvectors() -> None:
 
 
 @hydra_main
-def main(cfg: AllConfig) -> None:
+def main(cfg: ExperimentConfig) -> None:
     exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
     for tracker in get_trackers(cfg):
         exp.trackers.subscribe(tracker)

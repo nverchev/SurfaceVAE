@@ -1,16 +1,16 @@
 """Interpolate latent vectors of test samples and render the generated meshes."""
 
 import logging
-import random
 
-from collections.abc import Sized
 
 import torch
 
 from drytorch.lib import loading
 
-from src.config import AllConfig, Experiment, MeshEvent, get_trackers, hydra_main
-from src.data import get_active_dataset
+from src.config import ExperimentConfig, Experiment, hydra_main
+from src.trackers import get_trackers
+from src.train.events import MeshEvent
+from src.data import get_databuilder
 from src.data.split import Partitions
 from src.train.loaders import collate_coma_batch
 from src.train.models import load_extract_vae_module
@@ -22,19 +22,14 @@ def interpolate_samples() -> None:
     cfg = Experiment.get_config()
     cfg_user = cfg.user
     if cfg_user.plot.use_train:
-        dataset = get_active_dataset().get_split(Partitions.train)
+        split = get_databuilder().get_split(Partitions.train)
     else:
-        dataset = get_active_dataset().get_split(Partitions.test)
+        split = get_databuilder().get_split(Partitions.test)
 
     vae_module = load_extract_vae_module()
     device = vae_module.mean_shape.device
-    class_names = dataset.class_names
-    faces = dataset.faces
-    sample_indices = cfg_user.plot.sample_indices
-    if not sample_indices:
-        assert isinstance(dataset, Sized)
-        sample_indices = [random.randint(0, len(dataset) - 1)]
-
+    class_names = split.class_names
+    faces = split.faces
     if vae_module.use_mean_shape:
         decoder_mean_shape = vae_module.normalize_sample(vae_module.mean_shape)
     else:
@@ -42,12 +37,23 @@ def interpolate_samples() -> None:
 
     mean_operator = vae_module.normalize_operator(vae_module.mean_operator)
     mean_operator_adjoint = vae_module.normalize_operator(vae_module.mean_operator_adjoint)
-    inputs, targets = loading.take_from_dataset(
-        dataset, indices=sample_indices, device=device, collate_fn=collate_coma_batch
-    )
+    if cfg_user.plot.sample_indices:
+        sample_indices, (inputs, targets) = loading.take_from_dataset(
+            split, indices=cfg_user.plot.sample_indices, device=device, collate_fn=collate_coma_batch
+        )
+    else:
+        sample_indices, (inputs, targets) = loading.take_from_dataset(
+            split,
+            n_samples=cfg_user.generate.batch_size,
+            preserve_order=False,
+            device=device,
+            collate_fn=collate_coma_batch,
+        )
+
     latents = vae_module(inputs).z
     dim_latent = vae_module.dim_latent
-    for k, (i, label_idx) in enumerate(zip(sample_indices, targets.label.tolist(), strict=True)):
+    for k, (i, label) in enumerate(zip(sample_indices, targets.label.unbind(), strict=True)):
+        label_idx = int(label.item())
         z = latents[k : k + 1]
         label_name = class_names[label_idx] if class_names else f'subject_{label_idx}'
         logging.info('Interpolating Sample %d (label: %s):', i, label_name)
@@ -70,7 +76,7 @@ def interpolate_samples() -> None:
 
 
 @hydra_main
-def main(cfg: AllConfig) -> None:
+def main(cfg: ExperimentConfig) -> None:
     """Set up the experiment and launch sample interpolation."""
     exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
     for tracker in get_trackers(cfg):

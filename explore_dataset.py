@@ -1,16 +1,15 @@
 """Explore and visualize the 3D mesh dataset hierarchy."""
 
 import logging
-import random
-
-from collections.abc import Sized
 
 import torch
 
 from drytorch.lib import loading
 
-from src.config import AllConfig, Experiment, MeshEvent, get_trackers, hydra_main
-from src.data import get_active_dataset
+from src.config import ExperimentConfig, Experiment, hydra_main
+from src.trackers import get_trackers
+from src.train.events import MeshEvent
+from src.data import get_databuilder
 from src.data.split import Partitions
 from src.train.loaders import collate_coma_batch
 
@@ -21,19 +20,24 @@ def explore_dataset() -> None:
     cfg = Experiment.get_config()
     cfg_user = cfg.user
     if cfg_user.plot.use_train:
-        dataset = get_active_dataset().get_split(Partitions.train)
+        split = get_databuilder().get_split(Partitions.train)
     else:
-        dataset = get_active_dataset().get_split(Partitions.test)
+        split = get_databuilder().get_split(Partitions.test)
 
-    class_names = dataset.class_names
-    faces = dataset.faces
-    sample_indices = cfg_user.plot.sample_indices
-    if not sample_indices:
-        assert isinstance(dataset, Sized)
-        sample_indices = random.sample(range(len(dataset)), min(16, len(dataset)))
+    class_names = split.class_names
+    faces = split.faces
+    if cfg_user.plot.sample_indices:
+        sample_indices, (inputs, targets) = loading.take_from_dataset(
+            split, indices=cfg_user.plot.sample_indices, collate_fn=collate_coma_batch
+        )
+    else:
+        sample_indices, (inputs, targets) = loading.take_from_dataset(
+            split, n_samples=cfg_user.generate.batch_size, preserve_order=False, collate_fn=collate_coma_batch
+        )
 
-    inputs, targets = loading.take_from_dataset(dataset, indices=sample_indices, collate_fn=collate_coma_batch)
-    for i, vertices, label_idx in zip(sample_indices, inputs.x.numpy(), targets.label.tolist(), strict=True):
+    for i, sample_vertices, label in zip(sample_indices, inputs.x.unbind(), targets.label.unbind(), strict=True):
+        vertices = sample_vertices.numpy()
+        label_idx = int(label.item())
         label_name = class_names[label_idx] if class_names else f'subject_{label_idx}'
         logging.info('Exploring Dataset for Sample %d (label: %s):', i, label_name)
         MeshEvent(
@@ -47,7 +51,7 @@ def explore_dataset() -> None:
 
 
 @hydra_main
-def main(cfg: AllConfig) -> None:
+def main(cfg: ExperimentConfig) -> None:
     """Set up the experiment and launch the dataset exploration."""
     exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
     for tracker in get_trackers(cfg):

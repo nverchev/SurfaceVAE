@@ -1,17 +1,16 @@
 """Reconstruct samples from the dataset."""
 
 import logging
-import random
-
-from collections.abc import Sized
 
 import numpy as np
 import torch
 
 from drytorch.lib import loading
 
-from src.config import AllConfig, Experiment, MeshEvent, get_trackers, hydra_main
-from src.data import get_active_dataset
+from src.config import ExperimentConfig, Experiment, hydra_main
+from src.trackers import get_trackers
+from src.train.events import MeshEvent
+from src.data import get_databuilder
 from src.data.split import Partitions
 from src.train.loaders import collate_coma_batch
 from src.train.models import load_extract_vae_module
@@ -32,27 +31,33 @@ def reconstruct_samples() -> None:
     else:
         partition = Partitions.test if cfg.final else Partitions.val
 
-    dataset = get_active_dataset().get_split(partition)
-
+    split = get_databuilder().get_split(partition)
     vae_module = load_extract_vae_module()
     device = vae_module.mean_shape.device
-    class_names = dataset.class_names
-    faces = dataset.faces
-    sample_indices = cfg_user.plot.sample_indices
-    if not sample_indices:
-        assert isinstance(dataset, Sized)
-        sample_indices = random.sample(range(len(dataset)), min(8, len(dataset)))
+    class_names = split.class_names
+    faces = split.faces
+    if cfg_user.plot.sample_indices:
+        sample_indices, (inputs, targets) = loading.take_from_dataset(
+            split, indices=cfg_user.plot.sample_indices, device=device, collate_fn=collate_coma_batch
+        )
+    else:
+        sample_indices, (inputs, targets) = loading.take_from_dataset(
+            split,
+            n_samples=cfg_user.generate.batch_size,
+            preserve_order=False,
+            device=device,
+            collate_fn=collate_coma_batch,
+        )
 
-    inputs, targets = loading.take_from_dataset(
-        dataset, indices=sample_indices, device=device, collate_fn=collate_coma_batch
-    )
     outputs = vae_module(inputs)
-    originals = inputs.x.cpu().numpy()
-    reconstructions = vae_module.denormalize_sample(outputs.recon_mu).cpu().numpy()
-    labels = targets.label.tolist()
-    for i, original_vertices, recon_vertices, label_idx in zip(
-        sample_indices, originals, reconstructions, labels, strict=True
+    originals = inputs.x.cpu().unbind()
+    reconstructions = vae_module.denormalize_sample(outputs.recon_mu).cpu().unbind()
+    for i, original, reconstruction, label in zip(
+        sample_indices, originals, reconstructions, targets.label.unbind(), strict=True
     ):
+        original_vertices = original.numpy()
+        recon_vertices = reconstruction.numpy()
+        label_idx = int(label.item())
         label_name = class_names[label_idx] if class_names else f'subject_{label_idx}'
         logging.info('Reconstructing Sample %d (label: %s):', i, label_name)
         folder = f'reconstructed/sample_{i}'
@@ -75,7 +80,7 @@ def reconstruct_samples() -> None:
 
 
 @hydra_main
-def main(cfg: AllConfig) -> None:
+def main(cfg: ExperimentConfig) -> None:
     """Set up the experiment and launch the sample reconstruction."""
     exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
     for tracker in get_trackers(cfg):

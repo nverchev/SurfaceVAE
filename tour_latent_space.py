@@ -5,8 +5,10 @@ import logging
 import numpy as np
 import torch
 
-from src.config import AllConfig, Experiment, MeshEvent, get_trackers, hydra_main
-from src.data.coma import BaseCOMAData
+from src.config import ExperimentConfig, Experiment, hydra_main
+from src.trackers import get_trackers
+from src.train.events import MeshEvent
+from src.data.coma import DataBuilder
 from src.train.models import load_extract_vae_module
 
 
@@ -17,7 +19,7 @@ def tour_latent_space() -> None:
     cfg_user = cfg.user
     vae_module = load_extract_vae_module()
     device = vae_module.mean_shape.device
-    faces = BaseCOMAData.get_faces()
+    faces = DataBuilder.get_faces()
     if vae_module.use_mean_shape:
         decoder_mean_shape = vae_module.normalize_sample(vae_module.mean_shape)
     else:
@@ -64,7 +66,7 @@ def tour_latent_space() -> None:
 
 
 @hydra_main
-def main(cfg: AllConfig) -> None:
+def main(cfg: ExperimentConfig) -> None:
     """Set up the experiment and launch latent space touring."""
     exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
     for tracker in get_trackers(cfg):
