@@ -32,7 +32,7 @@ finetune = ["optuna>=4.6.0", "plotly>=5.20.0"]
 visualize = ["pyvista>=0.46.4", "seaborn>=0.13.2"]
 
 [dependency-groups]
-dev = ["basedpyright>=1.40.1", "pre-commit>=4.5.1", "pytest>=9.1.1", "ruff>=0.16.9"]
+dev = ["basedpyright==1.40.2", "pre-commit>=4.5.1", "pytest>=9.1.1", "ruff==0.17.1"]
 
 [tool.uv.sources]
 drytorch = { path = "../drytorch", editable = true }
