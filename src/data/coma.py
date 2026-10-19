@@ -24,7 +24,6 @@ import gc
 import json
 import os
 
-os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 import pathlib
 
 from typing import Any, ClassVar
@@ -38,7 +37,7 @@ from tqdm import tqdm
 from src.config import Experiment
 from src.config.options import Expressions, ModelOperators
 from src.data import operators
-from src.data.split import COMADatasetSplit, Partitions
+from src.data.split import COMASplit, Partitions
 from src.utils.meshes import read_ply
 from src.utils.sparse import (
     get_h5_dataset,
@@ -90,7 +89,7 @@ class ConfigCached(abc.ABCMeta):
         """Get the faces of the dataset."""
 
 
-class BaseCOMAData(metaclass=ConfigCached):
+class DataBuilder(metaclass=ConfigCached):
     """Base class to load raw COMA data, compute partitions, and manage operator caching."""
 
     folder: ClassVar[str] = 'COMA_data'
@@ -112,7 +111,7 @@ class BaseCOMAData(metaclass=ConfigCached):
 
         self._precompute_all_operators()
 
-        with h5py.File(self.h5_path, 'r') as f:
+        with h5py.File(self.h5_path, 'r', locking=False) as f:
             self.faces = get_h5_dataset(f, H5Keys.FACES)[:]
 
         return
@@ -123,7 +122,7 @@ class BaseCOMAData(metaclass=ConfigCached):
             return False
 
         try:
-            with h5py.File(self.h5_path, 'r') as f:
+            with h5py.File(self.h5_path, 'r', locking=False) as f:
                 return all(f'{p.name}/{H5Keys.VERTICES}' in f for p in Partitions if p != Partitions.train_val)
         except Exception:
             return False
@@ -171,7 +170,7 @@ class BaseCOMAData(metaclass=ConfigCached):
     def _get_h5_path(self) -> pathlib.Path:
         """Get path to the HDF5 archive."""
 
-    def get_split(self, partition: Partitions) -> COMADatasetSplit:
+    def get_split(self, partition: Partitions) -> COMASplit:
         if partition == Partitions.train_val:
             train_vertices, _, train_op, train_op_adj, train_lbls = self._load_split(
                 Partitions.train,
@@ -203,7 +202,7 @@ class BaseCOMAData(metaclass=ConfigCached):
         else:
             vertices, _, operator, adjoint_operator, labels = self._load_split(partition)
 
-        return COMADatasetSplit(
+        return COMASplit(
             shapes=vertices,
             faces=self.faces,
             operator=operator,
@@ -302,7 +301,7 @@ class BaseCOMAData(metaclass=ConfigCached):
             else f'{partition.name}/{H5Keys.OPERATORS}/{self.operator_type.name}'
         )
 
-        with h5py.File(self.h5_path, 'r') as f:
+        with h5py.File(self.h5_path, 'r', locking=False) as f:
             faces = get_h5_dataset(f, H5Keys.FACES)[:]
             vertices = get_h5_dataset(f, f'{partition.name}/{H5Keys.VERTICES}')[:]
             labels = get_h5_dataset(f, f'{partition.name}/{H5Keys.LABELS}')[:]
@@ -355,7 +354,7 @@ class BaseCOMAData(metaclass=ConfigCached):
         """Split paths into train, validation, and test sets."""
 
 
-class COMAInterpolationData(BaseCOMAData):
+class COMAInterpolationDataBuilder(DataBuilder):
     """Standard COMA dataset loader for interpolation."""
 
     def _get_h5_path(self) -> pathlib.Path:
@@ -384,7 +383,7 @@ class COMAInterpolationData(BaseCOMAData):
         }
 
 
-class COMAExtrapolationData(BaseCOMAData):
+class COMAExtrapolationDataBuilder(DataBuilder):
     """COMA extrapolation dataset loader."""
 
     def _setup_attributes(self, cfg: Any) -> None:
@@ -419,7 +418,7 @@ class COMAExtrapolationData(BaseCOMAData):
         }
 
 
-class COMAIdentityData(BaseCOMAData):
+class COMAIdentityDataBuilder(DataBuilder):
     """COMA identity extrapolation dataset loader."""
 
     def _setup_attributes(self, cfg: Any) -> None:

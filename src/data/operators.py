@@ -476,10 +476,10 @@ def get_dummy_operator(
 
 def compute_operators_on_the_fly(x: torch.Tensor, operator_type: ModelOperators) -> tuple[torch.Tensor, torch.Tensor]:
     """Compute sparse operators on-the-fly for a batch of vertices."""
-    from src.data.coma import BaseCOMAData
+    from src.data.coma import DataBuilder
 
     batch_size = x.size(0)
-    faces = BaseCOMAData.get_faces()
+    faces = DataBuilder.get_faces()
     computed_ops = []
     computed_adjs = []
     x_cpu = x.detach().cpu()

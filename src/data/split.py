@@ -24,7 +24,7 @@ class Partitions(enum.Enum):
     test = enum.auto()
 
 
-class AbstractSplit(Dataset[tuple[Inputs, Targets]], metaclass=ABCMeta):
+class DataSplit(Dataset[tuple[Inputs, Targets]], metaclass=ABCMeta):
     @abstractmethod
     def __len__(self) -> int: ...
 
@@ -52,7 +52,7 @@ class AbstractSplit(Dataset[tuple[Inputs, Targets]], metaclass=ABCMeta):
     def faces(self) -> np.ndarray: ...
 
 
-class COMADatasetSplit(AbstractSplit):
+class COMASplit(DataSplit):
     """COMADataset for a specific partition."""
 
     def __init__(

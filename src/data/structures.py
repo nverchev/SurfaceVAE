@@ -1,7 +1,7 @@
 """Module containing classes for inputs, outputs and targets for the VAE."""
 
 import dataclasses
-from typing import NamedTuple, Self
+from typing import NamedTuple
 
 import torch
 
@@ -32,7 +32,7 @@ class Targets(NamedTuple):
     label: torch.Tensor = torch.empty(0)
 
 
-@dataclasses.dataclass(init=False, slots=True)
+@dataclasses.dataclass(init=False, slots=True, repr=False)
 class Outputs:
     """Outputs for the Fixed Graph VAE.
 
@@ -52,28 +52,3 @@ class Outputs:
     mu: torch.Tensor
     logvar: torch.Tensor
     z: torch.Tensor
-
-    def update(self, other: Self) -> None:
-        """Update the state with another instance's one."""
-        for attribute in other.__slots__:
-            try:
-                setattr(self, attribute, getattr(other, attribute))
-            except AttributeError:
-                pass
-
-        return
-
-    def __repr__(self) -> str:
-        field_names = [f.name for f in dataclasses.fields(self) if f.repr]
-        parts = []
-        for name in field_names:
-            if hasattr(self, name):
-                try:
-                    value = getattr(self, name)
-                    parts.append(f'{name}={value!r}')
-                except Exception:
-                    parts.append(f'{name}=<error>')
-            else:
-                parts.append(f'{name}=<uninitialized>')
-
-        return f'{self.__class__.__name__}({", ".join(parts)})'
