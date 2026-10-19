@@ -3,7 +3,7 @@
 seed: 42
 
 # Options for training efficiency
-cpu: false
+device: auto  # the available accelerator
 n_workers: 0
 n_subprocesses: 0
 lazy_load: true

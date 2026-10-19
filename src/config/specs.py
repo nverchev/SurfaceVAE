@@ -9,11 +9,11 @@ from typing import Any, Annotated, Self, Literal
 import torch
 import torch.nn as nn
 
-from pydantic import BeforeValidator, Field, model_validator
+from pydantic import BeforeValidator, Field, PlainValidator, model_validator
 from pydantic.dataclasses import dataclass
 
 from src.config.environment import EnvSettings, PROJECT_NAME, VERSION, get_current_branch
-from src.config.torch import ActClass, get_activation_cls, get_optim_cls, set_seed
+from src.config.torch import ActClass, get_activation_cls, get_device, get_optim_cls, set_seed
 from src.config.options import (
     Datasets,
     Expressions,
@@ -24,6 +24,7 @@ from src.config.options import (
 )
 
 ActivationClass = Annotated[ActClass, BeforeValidator(get_activation_cls)]
+Device = Annotated[torch.device | Literal['auto'], PlainValidator(get_device)]
 OptimizerClass = Annotated[type[torch.optim.Optimizer], BeforeValidator(get_optim_cls)]
 PositiveInt = Annotated[int, Field(ge=0)]
 StrictlyPositiveInt = Annotated[int, Field(gt=0)]
@@ -320,7 +321,8 @@ class UserSettings:
     """User-specific options and preferences.
 
     Attributes:
-        cpu: Whether to run computations on CPU (None/False defaults to accelerator)
+        device: Device where the models run: ``auto`` for the accelerator when available, or a name such as
+            ``cpu`` or ``cuda:1``.
         n_workers: The number of workers for data loading
         trackers: The active trackers configurations
         seed: The seed for PyTorch/NumPy randomness (None disables manual seeding)
@@ -334,7 +336,7 @@ class UserSettings:
         path: The paths for data and experiments
     """
 
-    cpu: bool
+    device: Device
     n_workers: PositiveInt
     trackers: TrackerList
     seed: int | None
@@ -354,11 +356,6 @@ class UserSettings:
             set_seed(self.seed)
 
         return
-
-    @property
-    def device(self) -> torch.device | Literal['auto']:
-        """Compute device: ``cpu`` when forced, ``'auto'`` to use the accelerator when available."""
-        return torch.device('cpu') if self.cpu else 'auto'
 
 
 @dataclass(frozen=True)
