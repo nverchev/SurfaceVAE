@@ -45,14 +45,19 @@ class DistributedWorker[**P, T]:
         if 'OMP_NUM_THREADS' not in os.environ:
             torch.set_num_threads(max(1, (os.cpu_count() or 0) // self.world_size))
 
-        torch.cuda.set_device(rank)
-        acc_or_none = torch.accelerator.current_accelerator()
-        acc = torch.device('cpu') if acc_or_none is None else acc_or_none
-        backend = torch.distributed.get_default_backend_for_device(acc)
+        accelerator = torch.accelerator.current_accelerator(check_available=True)
+        device_id: torch.device | None = None
+        backend = dist.get_default_backend_for_device(torch.device('cpu'))
+        if accelerator is not None:
+            device_id = torch.device(accelerator.type, rank)
+            torch.accelerator.set_device_index(rank)
+            backend = dist.get_default_backend_for_device(device_id)
+
         dist.init_process_group(
             backend,
-            rank=rank,
+            device_id=device_id,
             init_method=f'tcp://127.0.0.1:{self.port}',
+            rank=rank,
             world_size=self.world_size,
         )
 
