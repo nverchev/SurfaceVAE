@@ -53,6 +53,9 @@ class MeshTracker(Dumper):
 
     @notify.register
     def _(self, event: MeshEvent) -> None:
+        if not (self.interactive or self.record):  # an unrecorded run gets no screenshot
+            return super().notify(event)
+
         plotter = pv.Plotter(lighting='none', window_size=list(WINDOW), notebook=False, off_screen=not self.interactive)
         drawn = [np.asarray(vertices) for vertices in event.vertices if len(vertices)]
         if drawn:
