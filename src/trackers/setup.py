@@ -77,6 +77,26 @@ def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[t
             engine = sqlalchemy.create_engine(f'sqlite:///{engine_path}')
             tracker_list.append(SQLConnection(engine=engine))
 
+    if cfg_trackers.matplotlib:
+        try:
+            from drytorch.trackers.matplotlib import MatPlotter
+
+        except ImportError as err:
+            warnings.warn(f'Matplotlib not installed, skipping. {err}', stacklevel=2)
+
+        else:
+            tracker_list.append(MatPlotter())
+
+    if cfg_trackers.plotly:
+        try:
+            from drytorch.trackers.plotly import PlotlyPlotter
+
+        except ImportError as err:
+            warnings.warn(f'Plotly not installed, skipping. {err}', stacklevel=2)
+
+        else:
+            tracker_list.append(PlotlyPlotter())
+
     if cfg_trackers.pyvista:
         try:
             from src.trackers.pyvista import MeshTracker

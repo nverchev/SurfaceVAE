@@ -245,6 +245,8 @@ class TrackerList:
         csv: Whether to use the CSVDumper tracker
         tensorboard: Whether to use the TensorBoard tracker
         sqlalchemy: Whether to use the SQLAlchemyConnection tracker
+        matplotlib: Saves a PNG figure of each metric after training
+        plotly: Saves an HTML figure of each metric after training
         pyvista: Whether to draw the meshes the scripts publish
     """
 
@@ -253,6 +255,8 @@ class TrackerList:
     csv: bool
     tensorboard: bool
     sqlalchemy: bool
+    matplotlib: bool = False
+    plotly: bool = False
     pyvista: bool = True
 
 
@@ -281,6 +285,7 @@ class PlottingOptions:
         interpolation_step_factor: Step scaling factor for latent space interpolation
         interpolation_steps: Number of steps in each direction for latent interpolation
         num_eigenvectors: Number of operator eigenvectors to visualize
+        show: Whether to also display the learning curves of the plotting trackers
     """
 
     interactive: bool
@@ -290,6 +295,7 @@ class PlottingOptions:
     interpolation_step_factor: float = 0.3
     interpolation_steps: PositiveInt = 4
     num_eigenvectors: PositiveInt = 5
+    show: bool = False
 
 
 @dataclass(frozen=True)
@@ -328,7 +334,8 @@ class UserSettings:
         seed: The seed for PyTorch/NumPy randomness (None disables manual seeding)
         checkpoint_every: The number of epochs between saving checkpoints
         on_the_fly: Compute operators on-the-fly per batch instead of loading from cache
-        load_checkpoint: The checkpoint epoch to load (0 starts from scratch)
+        load: Checkpoint epoch to resume from: ``0`` skip; ``-1`` loads last checkpoint.
+        run_id: Run to resume. Defaults to the last run of the experiment.
         n_subprocesses: Number of subprocesses for distributed training (0 for no parallelism)
         plot: The plotting options
         generate: The generation options
@@ -345,7 +352,8 @@ class UserSettings:
     generate: GenerationOptions
     lazy_load: bool = True
     on_the_fly: bool = False
-    load_checkpoint: int = 0
+    load: int = 0
+    run_id: str | None = None
     n_subprocesses: PositiveInt = 0
     hydra: HydraSettings = dataclasses.field(default_factory=HydraSettings)
     path: PathSpecs = dataclasses.field(default_factory=PathSpecs)
