@@ -19,16 +19,16 @@ def explore_dataset() -> None:
     """Visualize the point cloud/mesh dataset hierarchy."""
     cfg = Experiment.get_config()
     cfg_user = cfg.user
-    if cfg_user.plot.use_train:
+    if cfg_user.visualization.use_train:
         split = get_databuilder().get_split(Partitions.train)
     else:
         split = get_databuilder().get_split(Partitions.test)
 
     class_names = split.class_names
     faces = split.faces
-    if cfg_user.plot.sample_indices:
+    if cfg_user.visualization.sample_indices:
         sample_indices, (inputs, targets) = loading.take_from_dataset(
-            split, indices=cfg_user.plot.sample_indices, collate_fn=collate_coma_batch
+            split, indices=cfg_user.visualization.sample_indices, collate_fn=collate_coma_batch
         )
     else:
         sample_indices, (inputs, targets) = loading.take_from_dataset(

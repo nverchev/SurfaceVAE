@@ -23,27 +23,26 @@ WINDOW = (1024, 1024)
 
 
 class MeshTracker(Dumper):
-    """Draw every mesh an event carries, to a window or to a file.
+    """Draw every mesh an event carries to a file and, if asked, to a window.
 
     Attributes:
-        interactive: Whether a window opens instead of an image being written.
+        show: Whether a window also displays the meshes.
     """
 
     folder_name: ClassVar[str] = 'images'
 
-    interactive: bool
+    show: bool
 
-    def __init__(self, *, interactive: bool = True, par_dir: pathlib.Path | None = None) -> None:
+    def __init__(self, *, par_dir: pathlib.Path | None = None, show: bool = False) -> None:
         """Initialize.
 
         Args:
-            interactive: whether a window opens instead of an image being
-                written.
             par_dir: directory the images are filed under.
+            show: whether a window also displays the meshes.
         """
         super().__init__(par_dir=par_dir)
         vtk.vtkObject.GlobalWarningDisplayOff()
-        self.interactive = interactive
+        self.show = show
         return
 
     @functools.singledispatchmethod
@@ -53,10 +52,10 @@ class MeshTracker(Dumper):
 
     @notify.register
     def _(self, event: MeshEvent) -> None:
-        if not (self.interactive or self.record):  # an unrecorded run gets no screenshot
+        if not (self.show or self.record):
             return super().notify(event)
 
-        plotter = pv.Plotter(lighting='none', window_size=list(WINDOW), notebook=False, off_screen=not self.interactive)
+        plotter = pv.Plotter(lighting='none', window_size=list(WINDOW), notebook=False, off_screen=not self.show)
         drawn = [np.asarray(vertices) for vertices in event.vertices if len(vertices)]
         if drawn:
             self._light(plotter, np.concatenate(drawn, axis=0))
@@ -75,14 +74,16 @@ class MeshTracker(Dumper):
         if event.use_edl:
             pv.Plotter.enable_eye_dome_lighting(plotter)
 
-        self._show(plotter, event)
+        self._draw(plotter, event)
         plotter.close()
         return super().notify(event)
 
-    def _show(self, plotter: pv.Plotter, event: MeshEvent) -> None:
-        if self.interactive:
+    def _draw(self, plotter: pv.Plotter, event: MeshEvent) -> None:
+        if self.show:
             pv.Plotter.set_background(plotter, color='white')
-            plotter.show()
+            plotter.show(auto_close=False)  # keeps the plotter for the screenshot
+
+        if not self.record:
             return
 
         run_dir = self._get_run_dir()

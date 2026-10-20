@@ -274,21 +274,19 @@ class HydraSettings:
 
 
 @dataclass(frozen=True)
-class PlottingOptions:
+class VisualizationSettings:
     """Options for plotting and visualization.
 
     Attributes:
-        interactive: Whether to render interactive mesh visualizations
         sample_indices: List of dataset sample indices to visualize or interpolate
         use_train: Whether to evaluate on training set instead of test/val split
         use_mean_shape: Whether to use mean shape centering in visualization
         interpolation_step_factor: Step scaling factor for latent space interpolation
         interpolation_steps: Number of steps in each direction for latent interpolation
         num_eigenvectors: Number of operator eigenvectors to visualize
-        show: Whether to also display the learning curves of the plotting trackers
+        show: Whether to also display the figures: the meshes and the learning curves
     """
 
-    interactive: bool
     sample_indices: list[PositiveInt] = dataclasses.field(default_factory=list)
     use_train: bool = False
     use_mean_shape: bool = True
@@ -337,7 +335,7 @@ class UserSettings:
         load: Checkpoint epoch to resume from: ``0`` skip; ``-1`` loads last checkpoint.
         run_id: Run to resume. Defaults to the last run of the experiment.
         n_subprocesses: Number of subprocesses for distributed training (0 for no parallelism)
-        plot: The plotting options
+        visualization: The plotting options
         generate: The generation options
         hydra: The Hydra runtime settings
         path: The paths for data and experiments
@@ -348,7 +346,7 @@ class UserSettings:
     trackers: TrackerList
     seed: int | None
     checkpoint_every: PositiveInt
-    plot: PlottingOptions
+    visualization: VisualizationSettings
     generate: GenerationOptions
     lazy_load: bool = True
     on_the_fly: bool = False

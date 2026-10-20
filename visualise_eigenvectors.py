@@ -62,14 +62,14 @@ def vec3_to_rgb(vecs: np.ndarray) -> np.ndarray:
 def visualise_eigenvectors() -> None:
     cfg = Experiment.get_config()
     cfg_user = cfg.user
-    if cfg_user.plot.use_train:
+    if cfg_user.visualization.use_train:
         split = get_databuilder().get_split(Partitions.train)
     else:
         split = get_databuilder().get_split(Partitions.test)
 
     faces = split.faces
-    sample_indices = cfg_user.plot.sample_indices
-    use_mean_shape = cfg_user.plot.use_mean_shape
+    sample_indices = cfg_user.visualization.sample_indices
+    use_mean_shape = cfg_user.visualization.use_mean_shape
 
     items_to_process = []
     if sample_indices:
@@ -85,7 +85,7 @@ def visualise_eigenvectors() -> None:
         items_to_process.append((f'sample_{idx}', split[idx][0].x.numpy()))
 
     operator_type = cfg.model.operator
-    num_evs = cfg_user.plot.num_eigenvectors
+    num_evs = cfg_user.visualization.num_eigenvectors
     for item_name, vertices in items_to_process:
         folder = f'eigenvectors/{item_name}'
         if operator_type == ModelOperators.LAP_BELTRAMI:

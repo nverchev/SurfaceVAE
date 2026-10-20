@@ -34,12 +34,11 @@ generate:
   z_std: 0.9
 
 # Options for visualization
-plot:
-  interactive: false
+visualization:
   sample_indices: []
   use_train: false
   use_mean_shape: true
   interpolation_step_factor: 0.3
   interpolation_steps: 4
   num_eigenvectors: 10
-  show: false  # also display the learning curves of the plotting trackers
+  show: false  # also display the figures: the meshes and the learning curves
