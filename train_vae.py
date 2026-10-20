@@ -85,15 +85,6 @@ def train_vae(trial: Trial | None = None) -> None:
         register_checkpointing(builder, checkpoint_every=cfg.user.checkpoint_every)
 
     trainer = builder.build()
-    if cfg.final:
-        evaluation = Test(
-            model,
-            loader=eval_loader,
-            metric=loss_with_metrics,
-        )
-    else:
-        evaluation = builder.validation
-
     if cfg.user.load != 0:
         trainer.load_checkpoint(cfg.user.load)
 
@@ -101,7 +92,10 @@ def train_vae(trial: Trial | None = None) -> None:
     if trial is None:
         trainer.save_checkpoint()
 
-    evaluation()
+    # without final, the validation of every epoch already evaluates the model
+    if cfg.final:
+        Test(model, loader=eval_loader, metric=loss_with_metrics)()
+
     return
 
 

@@ -7,7 +7,6 @@ seed: null  # null = unset
 tune:
   use_pruner: false
   n_trials: 100
-  n_startup_trials: 10
-  n_warmup_steps: 15
-  interval_steps: 500
-  n_min_trials: 10
+  min_resource: 1
+  max_resource: auto  # auto = the epochs of the longest trial
+  reduction_factor: 3

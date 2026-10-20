@@ -111,7 +111,11 @@ def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[t
 
 
 def set_tuning_logging() -> None:
-    """Set the logging for tuning runs."""
+    """Configure minimal console logging for parallel Optuna workers.
+
+    When GNU parallel runs the workers, it sets ``PARALLEL_SEQ`` in each of them, and the
+    output is restricted to test metrics to prevent interleaved logs across workers.
+    """
     if 'PARALLEL_SEQ' in os.environ:
         drytorch.remove_all_default_trackers()
         drytorch.extend_default_trackers([logging.BuiltinLogger()])

@@ -1,6 +1,7 @@
 """Tune the hyperparameters of the Fixed Graph VAE."""
 
 import pathlib
+import warnings
 from collections.abc import Callable
 
 import hydra
@@ -66,16 +67,19 @@ def main(tune_cfg: DictConfig) -> None:
     set_tuning_logging()
     pathlib.Path(tune_cfg.db_location).mkdir(exist_ok=True)
     if tune_cfg.tune.use_pruner:
-        pruner = optuna.pruners.MedianPruner(
-            n_startup_trials=tune_cfg.tune.n_startup_trials,
-            n_warmup_steps=tune_cfg.tune.n_warmup_steps,
-            interval_steps=tune_cfg.tune.interval_steps,
-            n_min_trials=tune_cfg.tune.n_min_trials,
+        pruner = optuna.pruners.HyperbandPruner(
+            min_resource=tune_cfg.tune.min_resource,
+            max_resource=tune_cfg.tune.max_resource,
+            reduction_factor=tune_cfg.tune.reduction_factor,
         )
     else:
         pruner = optuna.pruners.NopPruner()
 
-    sampler = optuna.samplers.GPSampler(warn_independent_sampling=False)
+    with warnings.catch_warnings():
+        # multivariate TPE and the constant liar are stable in practice; Optuna still labels them experimental
+        warnings.simplefilter('ignore', optuna.exceptions.ExperimentalWarning)
+        sampler = optuna.samplers.TPESampler(multivariate=True, constant_liar=True)
+
     study_name = get_study_name(tune_cfg.tune.study_name, tune_cfg.overrides)
     study = optuna.create_study(
         study_name=study_name,
