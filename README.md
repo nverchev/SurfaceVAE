@@ -79,17 +79,20 @@ The default configuration trains with the **graph Laplacian** operator (`lap_gra
 
 ### Replicating the experiments
 
+Every experiment trains on the training and validation splits and is evaluated on the test
+split (`final=true`), as in the [results](#results-on-coma).
+
 #### 1. Interpolation Experiment (Generalisation to unseen frames)
 Predicting unseen frames:
 
 ##### Graph Laplacian with mean-shape decoder initialization
 ```bash
-uv run train_vae.py
+uv run train_vae.py final=true
 ```
 
 ##### Graph Laplacian without mean-shape decoder initialization
 ```bash
-uv run train_vae.py model.use_mean_shape=false
+uv run train_vae.py model.use_mean_shape=false final=true
 ```
 
 #### 2. Extrapolation Experiment (Generalisation to unseen expressions)
@@ -97,62 +100,62 @@ Predicting unseen expressions:
 
 ##### Leaving out bareteeth expression
 ```bash
-uv run train_vae.py data/dataset=bareteeth
+uv run train_vae.py data/dataset=bareteeth final=true
 ```
 
 ##### Leaving out cheeks_in expression
 ```bash
-uv run train_vae.py data/dataset=cheeks_in
+uv run train_vae.py data/dataset=cheeks_in final=true
 ```
 
 ##### Leaving out eyebrow expression
 ```bash
-uv run train_vae.py data/dataset=eyebrow
+uv run train_vae.py data/dataset=eyebrow final=true
 ```
 
 ##### Leaving out high_smile expression
 ```bash
-uv run train_vae.py data/dataset=high_smile
+uv run train_vae.py data/dataset=high_smile final=true
 ```
 
 ##### Leaving out lips_back expression
 ```bash
-uv run train_vae.py data/dataset=lips_back
+uv run train_vae.py data/dataset=lips_back final=true
 ```
 
 ##### Leaving out lips_up expression
 ```bash
-uv run train_vae.py data/dataset=lips_up
+uv run train_vae.py data/dataset=lips_up final=true
 ```
 
 ##### Leaving out mouth_down expression
 ```bash
-uv run train_vae.py data/dataset=mouth_down
+uv run train_vae.py data/dataset=mouth_down final=true
 ```
 
 ##### Leaving out mouth_extreme expression
 ```bash
-uv run train_vae.py data/dataset=mouth_extreme
+uv run train_vae.py data/dataset=mouth_extreme final=true
 ```
 
 ##### Leaving out mouth_middle expression
 ```bash
-uv run train_vae.py data/dataset=mouth_middle
+uv run train_vae.py data/dataset=mouth_middle final=true
 ```
 
 ##### Leaving out mouth_open expression
 ```bash
-uv run train_vae.py data/dataset=mouth_open
+uv run train_vae.py data/dataset=mouth_open final=true
 ```
 
 ##### Leaving out mouth_side expression
 ```bash
-uv run train_vae.py data/dataset=mouth_side
+uv run train_vae.py data/dataset=mouth_side final=true
 ```
 
 ##### Leaving out mouth_up expression
 ```bash
-uv run train_vae.py data/dataset=mouth_up
+uv run train_vae.py data/dataset=mouth_up final=true
 ```
 
 #### 3. Identity Experiment (Generalisation to unseen subject identities)

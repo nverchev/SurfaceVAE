@@ -7,7 +7,6 @@ from functools import cached_property
 from typing import Any, Annotated, Self, Literal
 
 import torch
-import torch.nn as nn
 
 from pydantic import BeforeValidator, Field, PlainValidator, model_validator
 from pydantic.dataclasses import dataclass
@@ -42,8 +41,8 @@ class DatasetConfig:
     """
 
     name: Datasets
-    validation: str | None = None
-    test: str | None = None
+    validation: str | None
+    test: str | None
 
     @model_validator(mode='after')
     def _validate_extrapolation(self) -> Self:
@@ -94,14 +93,14 @@ class ModelConfig:
     """
 
     operator: ModelOperators
-    n_features: StrictlyPositiveInt = 64
-    dim_latent: StrictlyPositiveInt = 8
-    n_blocks_encoder: StrictlyPositiveInt = 2
-    n_blocks_decoder: StrictlyPositiveInt = 3
-    act_cls: ActivationClass = nn.ELU
-    n_dense: StrictlyPositiveInt = 64
-    use_mean_shape: bool = True
-    batch_norm_momentum: PositiveFloat | None = 0.1
+    n_features: StrictlyPositiveInt
+    dim_latent: StrictlyPositiveInt
+    n_blocks_encoder: StrictlyPositiveInt
+    n_blocks_decoder: StrictlyPositiveInt
+    act_cls: ActivationClass
+    n_dense: StrictlyPositiveInt
+    use_mean_shape: bool
+    batch_norm_momentum: PositiveFloat | None
 
 
 @dataclass(frozen=True)
@@ -118,10 +117,10 @@ class SchedulerConfig:
     """
 
     function: Schedulers
-    restart_interval: PositiveInt = 0
-    restart_fraction: PositiveFloat = 0.0
-    warmup_steps: PositiveInt = 0
-    settings: dict[str, Any] = dataclasses.field(default_factory=dict)
+    restart_interval: PositiveInt
+    restart_fraction: PositiveFloat
+    warmup_steps: PositiveInt
+    settings: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -140,7 +139,7 @@ class LearningConfig:
     learning_rate: PositiveFloat
     weight_decay: PositiveFloat
     scheduler: SchedulerConfig
-    opt_settings: dict[str, Any] = dataclasses.field(default_factory=dict)
+    opt_settings: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -154,8 +153,8 @@ class EarlyStoppingConfig:
     """
 
     active: bool
-    window: int = 1
-    patience: int = 10
+    window: int
+    patience: int
 
 
 @dataclass(frozen=True)
@@ -166,7 +165,7 @@ class ObjectiveConfig:
         beta: The Laplace loss scale parameter beta.
     """
 
-    beta: PositiveFloat = 0.01
+    beta: PositiveFloat
 
 
 @dataclass(frozen=True)
@@ -189,9 +188,9 @@ class TrainingConfig:
     early_stopping: EarlyStoppingConfig
     loss_type: LossTypes
     _n_subprocesses: PositiveInt
-    objective: ObjectiveConfig = dataclasses.field(default_factory=ObjectiveConfig)
+    objective: ObjectiveConfig
 
-    annealing_period: PositiveInt = 100
+    annealing_period: PositiveInt
 
     @model_validator(mode='after')
     def _check_batch_size(self) -> Self:
@@ -255,9 +254,9 @@ class TrackerList:
     csv: bool
     tensorboard: bool
     sqlalchemy: bool
-    matplotlib: bool = False
-    plotly: bool = False
-    pyvista: bool = True
+    matplotlib: bool
+    plotly: bool
+    pyvista: bool
 
 
 @dataclasses.dataclass(frozen=True)
@@ -287,13 +286,13 @@ class PlottingSettings:
         show: Whether to also display the figures: the meshes and the learning curves
     """
 
-    sample_indices: list[PositiveInt] = dataclasses.field(default_factory=list)
-    use_train: bool = False
-    use_mean_shape: bool = True
-    interpolation_step_factor: float = 0.3
-    interpolation_steps: PositiveInt = 4
-    num_eigenvectors: PositiveInt = 5
-    show: bool = False
+    sample_indices: list[PositiveInt]
+    use_train: bool
+    use_mean_shape: bool
+    interpolation_step_factor: float
+    interpolation_steps: PositiveInt
+    num_eigenvectors: PositiveInt
+    show: bool
 
 
 @dataclass(frozen=True)
@@ -314,10 +313,10 @@ class GenerationOptions:
     batch_size: StrictlyPositiveInt
     bias_dim: PositiveInt
     bias_value: float
-    tour_samples_per_plane: StrictlyPositiveInt = 16
-    tour_radius: float = 1.0
-    z_max: float | None = 2.0
-    z_std: float = 1.0
+    tour_samples_per_plane: StrictlyPositiveInt
+    tour_radius: float
+    z_max: float | None
+    z_std: float
 
 
 @dataclass(frozen=True)
@@ -348,11 +347,11 @@ class UserSettings:
     checkpoint_every: PositiveInt
     plot: PlottingSettings
     generate: GenerationOptions
-    lazy_load: bool = True
-    on_the_fly: bool = False
-    load: int = 0
-    run_id: str | None = None
-    n_subprocesses: PositiveInt = 0
+    lazy_load: bool
+    on_the_fly: bool
+    load: int
+    run_id: str | None
+    n_subprocesses: PositiveInt
     hydra: HydraSettings = dataclasses.field(default_factory=HydraSettings)
     path: PathSpecs = dataclasses.field(default_factory=PathSpecs)
 
