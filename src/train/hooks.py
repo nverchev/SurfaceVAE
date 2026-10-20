@@ -13,12 +13,12 @@ __all__ = [
 ]
 
 
-def register_checkpointing(builder: TrainerBuilder[Any, Any, Any], /, checkpoint_every: int | None = None) -> None:
+def register_checkpointing(builder: TrainerBuilder[Any, Any, Any], /, *, checkpoint_every: int) -> None:
     """Register the checkpointing hook.
 
     Args:
         builder: trainer builder to register the saving hook to.
-        checkpoint_every: save frequency in epochs.
+        checkpoint_every: save frequency in epochs; ``0`` adds no saving.
     """
     if checkpoint_every:
         builder.add_saving(checkpoint_every)

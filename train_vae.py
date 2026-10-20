@@ -82,7 +82,7 @@ def train_vae(trial: Trial | None = None) -> None:
     if trial is not None:
         register_pruning(builder, trial)
     else:
-        register_checkpointing(builder, cfg.user.checkpoint_every or 1)
+        register_checkpointing(builder, checkpoint_every=cfg.user.checkpoint_every)
 
     trainer = builder.build()
     if cfg.final:

@@ -330,7 +330,7 @@ class UserSettings:
         n_workers: The number of workers for data loading
         trackers: The active trackers configurations
         seed: The seed for PyTorch/NumPy randomness (None disables manual seeding)
-        checkpoint_every: The number of epochs between saving checkpoints
+        checkpoint_every: Save a model checkpoint every *n* epochs; ``0`` saves only at the end of training.
         on_the_fly: Compute operators on-the-fly per batch instead of loading from cache
         load: Checkpoint epoch to resume from: ``0`` skip; ``-1`` loads last checkpoint.
         run_id: Run to resume. Defaults to the last run of the experiment.
