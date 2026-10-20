@@ -274,7 +274,7 @@ class HydraSettings:
 
 
 @dataclass(frozen=True)
-class VisualizationSettings:
+class PlottingSettings:
     """Options for plotting and visualization.
 
     Attributes:
@@ -335,7 +335,7 @@ class UserSettings:
         load: Checkpoint epoch to resume from: ``0`` skip; ``-1`` loads last checkpoint.
         run_id: Run to resume. Defaults to the last run of the experiment.
         n_subprocesses: Number of subprocesses for distributed training (0 for no parallelism)
-        visualization: The plotting options
+        plot: The plotting options
         generate: The generation options
         hydra: The Hydra runtime settings
         path: The paths for data and experiments
@@ -346,7 +346,7 @@ class UserSettings:
     trackers: TrackerList
     seed: int | None
     checkpoint_every: PositiveInt
-    visualization: VisualizationSettings
+    plot: PlottingSettings
     generate: GenerationOptions
     lazy_load: bool = True
     on_the_fly: bool = False

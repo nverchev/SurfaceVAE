@@ -105,7 +105,7 @@ def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[t
             warnings.warn(f'PyVista not installed, skipping. {err}', stacklevel=2)
 
         else:
-            tracker_list.append(MeshTracker(show=cfg.user.visualization.show))
+            tracker_list.append(MeshTracker(show=cfg.user.plot.show))
 
     return tracker_list
 

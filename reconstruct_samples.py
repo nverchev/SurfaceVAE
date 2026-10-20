@@ -26,7 +26,7 @@ def reconstruct_samples() -> None:
     """Reconstruct and visualize selected dataset samples."""
     cfg = Experiment.get_config()
     cfg_user = cfg.user
-    if cfg_user.visualization.use_train:
+    if cfg_user.plot.use_train:
         partition = Partitions.train_val if cfg.final else Partitions.train
     else:
         partition = Partitions.test if cfg.final else Partitions.val
@@ -36,9 +36,9 @@ def reconstruct_samples() -> None:
     device = vae_module.mean_shape.device
     class_names = split.class_names
     faces = split.faces
-    if cfg_user.visualization.sample_indices:
+    if cfg_user.plot.sample_indices:
         sample_indices, (inputs, targets) = loading.take_from_dataset(
-            split, indices=cfg_user.visualization.sample_indices, device=device, collate_fn=collate_coma_batch
+            split, indices=cfg_user.plot.sample_indices, device=device, collate_fn=collate_coma_batch
         )
     else:
         sample_indices, (inputs, targets) = loading.take_from_dataset(

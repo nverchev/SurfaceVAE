@@ -21,7 +21,7 @@ def interpolate_samples() -> None:
     """Encode meshes, interpolate along latent dimensions, and render the results."""
     cfg = Experiment.get_config()
     cfg_user = cfg.user
-    if cfg_user.visualization.use_train:
+    if cfg_user.plot.use_train:
         split = get_databuilder().get_split(Partitions.train)
     else:
         split = get_databuilder().get_split(Partitions.test)
@@ -37,9 +37,9 @@ def interpolate_samples() -> None:
 
     mean_operator = vae_module.normalize_operator(vae_module.mean_operator)
     mean_operator_adjoint = vae_module.normalize_operator(vae_module.mean_operator_adjoint)
-    if cfg_user.visualization.sample_indices:
+    if cfg_user.plot.sample_indices:
         sample_indices, (inputs, targets) = loading.take_from_dataset(
-            split, indices=cfg_user.visualization.sample_indices, device=device, collate_fn=collate_coma_batch
+            split, indices=cfg_user.plot.sample_indices, device=device, collate_fn=collate_coma_batch
         )
     else:
         sample_indices, (inputs, targets) = loading.take_from_dataset(
@@ -58,8 +58,8 @@ def interpolate_samples() -> None:
         label_name = class_names[label_idx] if class_names else f'subject_{label_idx}'
         logging.info('Interpolating Sample %d (label: %s):', i, label_name)
         for d in range(dim_latent):
-            steps = cfg_user.visualization.interpolation_steps
-            factor = cfg_user.visualization.interpolation_step_factor
+            steps = cfg_user.plot.interpolation_steps
+            factor = cfg_user.plot.interpolation_step_factor
             for j in range(-steps, steps + 1):
                 z_mod = z.clone()
                 z_mod[0, d] = (1.0 + factor * j) * z_mod[0, d]

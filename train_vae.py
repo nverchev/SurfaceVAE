@@ -115,7 +115,7 @@ def setup_and_train(cfg: ExperimentConfig) -> None:
 
     with exp.create_run(resume=resume, run_id=cfg.user.run_id, record=not DEBUG_MODE):
         train_vae()
-        save_learning_curves(trackers, f'VAE_{cfg.model.operator}', show=cfg.user.visualization.show)
+        save_learning_curves(trackers, f'VAE_{cfg.model.operator}', show=cfg.user.plot.show)
 
     return
 

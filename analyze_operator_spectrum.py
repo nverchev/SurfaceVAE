@@ -95,14 +95,14 @@ def analyze_operator_spectrum() -> None:
     operator_type = cfg.model.operator
     save_dir = cfg.user.path.version_dir / 'spectrum' / cfg.name
     save_dir.mkdir(parents=True, exist_ok=True)
-    if cfg_user.visualization.use_train:
+    if cfg_user.plot.use_train:
         partition = Partitions.train_val if cfg.final else Partitions.train
     else:
         partition = Partitions.test if cfg.final else Partitions.val
 
     split = get_databuilder().get_split(partition)
     faces = split.faces
-    num_evs = cfg_user.visualization.num_eigenvectors
+    num_evs = cfg_user.plot.num_eigenvectors
     if num_evs < 20:
         num_evs = 20
 
