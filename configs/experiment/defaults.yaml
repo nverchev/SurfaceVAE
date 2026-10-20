@@ -5,5 +5,5 @@ defaults:
   - train: train
   - _self_
 
-variation:
+variation: null  # null = the current git branch
 final: false

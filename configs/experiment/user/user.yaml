@@ -3,14 +3,14 @@
 seed: 42
 
 # Options for training efficiency
-device: auto  # the available accelerator
+device: auto  # auto = the available accelerator
 n_workers: 0
-n_subprocesses: 0
+n_subprocesses: 0  # 0 = no DDP
 lazy_load: true
 on_the_fly: false
 checkpoint_every: 100
-load: 0  # -1 loads the latest checkpoint
-run_id: null # run to resume, null resumes the last run
+load: 0  # 0 = start from scratch, -1 = the latest checkpoint
+run_id: null  # null = the last run
 
 # Optional trackers for monitoring the experiment
 trackers:
@@ -19,8 +19,8 @@ trackers:
   wandb: false
   sqlalchemy: false
   csv: true
-  matplotlib: false  # saves the figures of the metrics
-  plotly: false  # saves the figures of the metrics
+  matplotlib: false
+  plotly: false
   pyvista: true
 
 # Options for random generation
@@ -41,4 +41,4 @@ visualization:
   interpolation_step_factor: 0.3
   interpolation_steps: 4
   num_eigenvectors: 10
-  show: false  # also display the figures: the meshes and the learning curves
+  show: false
