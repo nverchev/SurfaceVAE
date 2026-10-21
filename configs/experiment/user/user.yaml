@@ -15,11 +15,11 @@ run_id: null  # null = the last run
 # Optional trackers for monitoring the experiment
 trackers:
   hydra: true
-  tensorboard: true
+  tensorboard: false
   wandb: false
   sqlalchemy: false
   csv: true
-  matplotlib: false
+  matplotlib: true
   plotly: false
   pyvista: true
 

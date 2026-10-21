@@ -9,6 +9,7 @@ import drytorch
 
 from drytorch.core import tracking
 from drytorch.trackers import logging
+from drytorch.trackers.base_classes import MetricLoader
 
 from src.config.environment import DEBUG_MODE
 from src.config.specs import ExperimentConfig
@@ -27,6 +28,7 @@ def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[t
     hydra_utils.configure_log(cfg_hydra.job_logging)
     drytorch.init_trackers(mode='hydra')
     tracker_list: list[tracking.Tracker] = []
+    metric_loader: MetricLoader | None = None
     if debug_mode:
         return tracker_list
 
@@ -50,7 +52,8 @@ def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[t
     if cfg_trackers.csv:
         from drytorch.trackers.csv import CSVDumper
 
-        tracker_list.append(CSVDumper())
+        metric_loader = CSVDumper()
+        tracker_list.append(metric_loader)
 
     if cfg_trackers.tensorboard:
         try:
@@ -85,7 +88,8 @@ def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[t
             warnings.warn(f'Matplotlib not installed, skipping. {err}', stacklevel=2)
 
         else:
-            tracker_list.append(MatPlotter())
+            # with the CSV files, the figures of a resumed run also show the epochs of its earlier sessions
+            tracker_list.append(MatPlotter(metric_loader=metric_loader))
 
     if cfg_trackers.plotly:
         try:
@@ -95,7 +99,7 @@ def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[t
             warnings.warn(f'Plotly not installed, skipping. {err}', stacklevel=2)
 
         else:
-            tracker_list.append(PlotlyPlotter())
+            tracker_list.append(PlotlyPlotter(metric_loader=metric_loader))
 
     if cfg_trackers.pyvista:
         try:
