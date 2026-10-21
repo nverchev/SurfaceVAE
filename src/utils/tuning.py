@@ -1,6 +1,5 @@
 """Utilities for hyperparameter tuning."""
 
-import numpy as np
 import optuna
 import yaml
 from omegaconf import DictConfig, OmegaConf
@@ -27,15 +26,6 @@ def get_past_final_values(trial: optuna.Trial) -> list[float]:
         raise optuna.TrialPruned()
 
     return [trial.value for trial in real_completed_trials if trial.value is not None]
-
-
-def impute_pruned_trial(trial: optuna.Trial) -> float:
-    """Input pruned trial with an interpolation from past completed trials' values."""
-    past_final_values = get_past_final_values(trial)
-    percentile = 75 if trial.study.direction == optuna.study.StudyDirection.MINIMIZE else 25
-    imputed_value = np.percentile(past_final_values, percentile)
-    trial.set_user_attr('imputed', True)
-    return float(imputed_value)
 
 
 def impute_failed_trial(trial: optuna.Trial) -> float:

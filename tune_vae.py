@@ -17,7 +17,6 @@ from src.trackers import set_tuning_logging
 from src.utils.tuning import (
     get_study_name,
     impute_failed_trial,
-    impute_pruned_trial,
     log_study_settings,
 )
 from train_vae import train_vae
@@ -31,7 +30,7 @@ def set_objective(tune_cfg: DictConfig) -> Callable[[optuna.Trial], float]:
         overrides = list(suggest_overrides(tune_cfg, trial))
         seed = 'null' if tune_cfg.seed is None else tune_cfg.seed
         overrides += [f'train.n_epochs={tune_cfg.n_epochs}', f'user.seed={seed}']
-        trial_cfg = get_experiment_config(overrides=[*tune_cfg.overrides, *overrides])
+        trial_cfg = get_experiment_config(overrides=overrides)
         exp = Experiment(
             trial_cfg,
             name=trial_cfg.name,
@@ -41,9 +40,6 @@ def set_objective(tune_cfg: DictConfig) -> Callable[[optuna.Trial], float]:
         with exp.create_run(record=False):
             try:
                 train_vae(trial=trial)
-            except optuna.TrialPruned:
-                return impute_pruned_trial(trial)
-
             except ConvergenceError:
                 return impute_failed_trial(trial)
 
@@ -89,7 +85,9 @@ def main(tune_cfg: DictConfig) -> None:
         load_if_exists=True,
     )
     log_study_settings(study, tune_cfg)
-    study.optimize(set_objective(tune_cfg), n_trials=tune_cfg.tune.n_trials)
+    # the trials of the study, from every worker and every run, stop at n_trials
+    max_trials = optuna.study.MaxTrialsCallback(tune_cfg.tune.n_trials, states=None)
+    study.optimize(set_objective(tune_cfg), n_trials=tune_cfg.tune.n_trials, callbacks=[max_trials])
     return
 
 

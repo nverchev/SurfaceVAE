@@ -80,7 +80,7 @@ def train_vae(trial: Trial | None = None) -> None:
         register_early_stopping(builder, window=cfg_early.window, patience=cfg_early.patience)
 
     if trial is not None:
-        register_pruning(builder, trial)
+        register_pruning(builder, trial, window=cfg.train.early_stopping.window)
     else:
         register_checkpointing(builder, checkpoint_every=cfg.user.checkpoint_every)
 

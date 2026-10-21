@@ -1,5 +1,8 @@
 """DRYTorch Model subtypes and VAE wrapper module."""
 
+from typing import Any
+
+from drytorch.core.exceptions import ModelNotFoundError
 from drytorch.lib.models import Model, EMAModel
 
 import torch
@@ -47,6 +50,28 @@ def load_extract_vae_module() -> BaseVAE:
         mean_operator_adjoint=mean_operator_adjoint,
     ).eval()
     model = VAEEMAModel(vae, name=f'VAE_{cfg.model.operator}', device=cfg.user.device)
-    epoch = cfg.user.load or -1  # changes default to load last epoch
-    model.load_state(epoch)
+    load_trained_state(model, epoch=cfg.user.load or -1)
     return model.averaged_module
+
+
+def load_trained_state(model: Model[Any, Any], /, *, epoch: int = -1) -> None:
+    """Load the weights of a model trained by an earlier phase of the experiment.
+
+    Args:
+        model: the model to load.
+        epoch: the epoch to load. Default loads the last saved epoch.
+
+    Raises:
+        RuntimeError: if the experiment holds no trained model.
+    """
+    try:
+        model.load_state(epoch)
+    except ModelNotFoundError as error:
+        cfg = Experiment.get_config()
+        msg = (
+            f'No trained {model.name} for the experiment {cfg.name} in {cfg.user.path.version_dir}: '
+            'train it first with the same configuration and overrides.'
+        )
+        raise RuntimeError(msg) from error
+
+    return

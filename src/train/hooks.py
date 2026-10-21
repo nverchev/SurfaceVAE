@@ -3,7 +3,7 @@
 from typing import Any
 
 from drytorch.lib.training import TrainerBuilder
-from drytorch.utils.averages import get_moving_average, get_trailing_mean
+from drytorch.utils.averages import get_trailing_mean
 
 
 __all__ = [
@@ -41,14 +41,15 @@ def register_early_stopping(builder: TrainerBuilder[Any, Any, Any], /, *, patien
     return
 
 
-def register_pruning(builder: TrainerBuilder[Any, Any, Any], /, trial: Any = None) -> None:
+def register_pruning(builder: TrainerBuilder[Any, Any, Any], /, trial: Any = None, *, window: int) -> None:
     """Register the pruning hook.
 
     Args:
         builder: trainer builder to register pruning callback to.
         trial: Optuna trial object.
+        window: number of last validations the pruner averages; ``1`` reads the last one.
     """
     from drytorch.contrib.optuna import TrialCallback
 
-    builder.add_post_epoch_hook(TrialCallback(trial, watch=builder.watch(filter_fn=get_moving_average())))
+    builder.add_post_epoch_hook(TrialCallback(trial, watch=builder.watch(filter_fn=get_trailing_mean(window))))
     return
