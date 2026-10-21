@@ -13,7 +13,7 @@ from src.trackers import get_trackers, save_learning_curves
 from src.config.environment import DEBUG_MODE
 from src.data import get_splits
 from src.module import get_vae_module
-from src.train import (
+from src.lib import (
     VAEEMAModel,
     VAEModel,
     get_learning_schema,

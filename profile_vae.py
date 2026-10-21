@@ -9,7 +9,7 @@ from drytorch.lib.loading import take_from_dataset
 from src.config import ExperimentConfig, Experiment, hydra_main
 from src.data import get_splits
 from src.module import get_vae_module
-from src.train.loaders import collate_coma_batch
+from src.lib.loaders import collate_coma_batch
 from src.utils.profiling import log_parameter_counts, profile_forward, profile_backward
 
 logger = logging.getLogger(__name__)

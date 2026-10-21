@@ -9,11 +9,11 @@ from drytorch.lib import loading
 
 from src.config import ExperimentConfig, Experiment, hydra_main
 from src.trackers import get_trackers
-from src.train.events import MeshEvent
+from src.lib.events import MeshEvent
 from src.data import get_databuilder
 from src.data.split import Partitions
-from src.train.loaders import collate_coma_batch
-from src.train.models import load_extract_vae_module
+from src.lib.loaders import collate_coma_batch
+from src.lib.models import load_extract_vae_module
 
 ERROR_THRESHOLD = 10.0
 CLIM_MAX = 5.0

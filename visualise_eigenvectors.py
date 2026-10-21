@@ -15,7 +15,7 @@ from drytorch.lib import loading
 
 from src.config import ExperimentConfig, Experiment, hydra_main
 from src.trackers import get_trackers
-from src.train.events import MeshEvent
+from src.lib.events import MeshEvent
 from src.config.options import ModelOperators
 from src.data import get_databuilder, build_operator
 from src.data.operators import (
@@ -23,7 +23,7 @@ from src.data.operators import (
     compute_mesh_geometry,
     compute_vertex_dual_areas,
 )
-from src.train.loaders import collate_coma_batch
+from src.lib.loaders import collate_coma_batch
 from src.data.split import Partitions
 
 logger = logging.getLogger(__name__)

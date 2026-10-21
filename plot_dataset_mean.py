@@ -4,7 +4,7 @@ import logging
 import torch
 from src.config import ExperimentConfig, Experiment, hydra_main
 from src.trackers import get_trackers
-from src.train.events import MeshEvent
+from src.lib.events import MeshEvent
 from src.data import get_databuilder
 from src.data.split import Partitions
 

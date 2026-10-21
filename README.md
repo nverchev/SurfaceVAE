@@ -251,7 +251,7 @@ SurfaceVAE/
 │   ├── config/                   # Experiment configuration and Hydra integration
 │   ├── data/                     # CoMA dataset loading, preprocessing, operators
 │   ├── module/                   # VAE encoder, decoder, layers
-│   ├── train/                    # Training loop, loss, learning schema, hooks
+│   ├── lib/                      # DRYTorch components: losses, metrics, learning schema, hooks, models
 │   └── utils/                    # Sparse utilities, indexable helpers, tuning tools
 ├── train_vae.py                  # Main training entry point
 ├── tune_vae.py                   # Hyperparameter tuning entry point

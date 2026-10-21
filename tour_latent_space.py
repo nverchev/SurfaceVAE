@@ -7,9 +7,9 @@ import torch
 
 from src.config import ExperimentConfig, Experiment, hydra_main
 from src.trackers import get_trackers
-from src.train.events import MeshEvent
+from src.lib.events import MeshEvent
 from src.data.coma import DataBuilder
-from src.train.models import load_extract_vae_module
+from src.lib.models import load_extract_vae_module
 
 
 @torch.inference_mode()

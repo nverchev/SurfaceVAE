@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 
 from src.config import Experiment
-from src.train.events import MeshEvent
+from src.lib.events import MeshEvent
 from src.config.hydra import get_experiment_config
 from src.trackers.pyvista import MeshTracker
 
