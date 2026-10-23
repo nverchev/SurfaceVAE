@@ -88,11 +88,13 @@ Predicting unseen frames:
 ##### Graph Laplacian with mean-shape decoder initialization
 ```bash
 uv run train_vae.py final=true
+uv run evaluate_vae.py final=true
 ```
 
 ##### Graph Laplacian without mean-shape decoder initialization
 ```bash
 uv run train_vae.py model.use_mean_shape=false final=true
+uv run evaluate_vae.py model.use_mean_shape=false final=true
 ```
 
 #### 2. Extrapolation Experiment (Generalisation to unseen expressions)
@@ -101,61 +103,73 @@ Predicting unseen expressions:
 ##### Leaving out bareteeth expression
 ```bash
 uv run train_vae.py data/dataset=bareteeth final=true
+uv run evaluate_vae.py data/dataset=bareteeth final=true
 ```
 
 ##### Leaving out cheeks_in expression
 ```bash
 uv run train_vae.py data/dataset=cheeks_in final=true
+uv run evaluate_vae.py data/dataset=cheeks_in final=true
 ```
 
 ##### Leaving out eyebrow expression
 ```bash
 uv run train_vae.py data/dataset=eyebrow final=true
+uv run evaluate_vae.py data/dataset=eyebrow final=true
 ```
 
 ##### Leaving out high_smile expression
 ```bash
 uv run train_vae.py data/dataset=high_smile final=true
+uv run evaluate_vae.py data/dataset=high_smile final=true
 ```
 
 ##### Leaving out lips_back expression
 ```bash
 uv run train_vae.py data/dataset=lips_back final=true
+uv run evaluate_vae.py data/dataset=lips_back final=true
 ```
 
 ##### Leaving out lips_up expression
 ```bash
 uv run train_vae.py data/dataset=lips_up final=true
+uv run evaluate_vae.py data/dataset=lips_up final=true
 ```
 
 ##### Leaving out mouth_down expression
 ```bash
 uv run train_vae.py data/dataset=mouth_down final=true
+uv run evaluate_vae.py data/dataset=mouth_down final=true
 ```
 
 ##### Leaving out mouth_extreme expression
 ```bash
 uv run train_vae.py data/dataset=mouth_extreme final=true
+uv run evaluate_vae.py data/dataset=mouth_extreme final=true
 ```
 
 ##### Leaving out mouth_middle expression
 ```bash
 uv run train_vae.py data/dataset=mouth_middle final=true
+uv run evaluate_vae.py data/dataset=mouth_middle final=true
 ```
 
 ##### Leaving out mouth_open expression
 ```bash
 uv run train_vae.py data/dataset=mouth_open final=true
+uv run evaluate_vae.py data/dataset=mouth_open final=true
 ```
 
 ##### Leaving out mouth_side expression
 ```bash
 uv run train_vae.py data/dataset=mouth_side final=true
+uv run evaluate_vae.py data/dataset=mouth_side final=true
 ```
 
 ##### Leaving out mouth_up expression
 ```bash
 uv run train_vae.py data/dataset=mouth_up final=true
+uv run evaluate_vae.py data/dataset=mouth_up final=true
 ```
 
 #### 3. Identity Experiment (Generalisation to unseen subject identities)
@@ -164,24 +178,25 @@ Predicting unseen subjects:
 ##### Graph Laplacian (default)
 ```bash
 uv run train_vae.py data/dataset=identity train.objective.beta=1 final=true
+uv run evaluate_vae.py data/dataset=identity train.objective.beta=1 final=true
 ```
 
 ##### Laplace-Beltrami Stiff (geometry-dependent)
 ```bash
 uv run train_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=lap_stiff
+uv run evaluate_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=lap_stiff
 ```
-*Run reference:*
-`[2026-07-25 19:04:14] - Experiment: main_data_dataset=identity_train.objective.beta=1_model.operator=lap_stiff_final - Stopping run: 2026-07-23@20h52m39s`
-
 ##### Laplace-Beltrami (geometry-dependent, normalized)
 ```bash
 uv run train_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=lap_beltrami
+uv run evaluate_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=lap_beltrami
 ```
 
 
 ##### Discrete Dirac operator with stiffness scaling
 ```bash
 uv run train_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=dirac_stiff
+uv run evaluate_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=dirac_stiff
 ```
 
 

@@ -3,10 +3,7 @@
 import logging
 from typing import TYPE_CHECKING, Any
 
-from drytorch import Test, Trainer
-
-from drytorch.lib.objectives import join
-
+from drytorch import Trainer
 
 from src.config import ExperimentConfig, Experiment, hydra_main
 from src.trackers import get_trackers, save_learning_curves
@@ -19,7 +16,6 @@ from src.lib import (
     get_learning_schema,
     COMADataLoader,
     get_vae_loss,
-    get_reconstruction_metrics,
     register_checkpointing,
     register_early_stopping,
     register_pruning,
@@ -63,8 +59,6 @@ def train_vae(trial: Trial | None = None) -> None:
         model = VAEModel(vae, device=cfg.user.device)
 
     loss = get_vae_loss(model, normalize=vae.normalize_sample)
-    metrics = get_reconstruction_metrics(denormalize=vae.denormalize_sample)
-    loss_with_metrics = join(loss, metrics)
     learning_schema = get_learning_schema(cfg)
     builder = Trainer.builder(
         model,
@@ -91,10 +85,6 @@ def train_vae(trial: Trial | None = None) -> None:
     trainer.train_until(cfg.train.n_epochs)
     if trial is None:
         trainer.save_checkpoint()
-
-    # without final, the validation of every epoch already evaluates the model
-    if cfg.final:
-        Test(model, loader=eval_loader, metric=loss_with_metrics)()
 
     return
 

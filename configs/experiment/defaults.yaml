@@ -1,5 +1,5 @@
 defaults:
-  - model: model
+  - model: vae
   - user: user
   - data: data
   - train: train
