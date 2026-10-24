@@ -5,7 +5,7 @@ import torch
 
 from torch import nn
 
-from src.module.vae import BaseVAE
+from src.module.vaes import BaseVAE
 
 
 class _Scaler(BaseVAE):

@@ -108,15 +108,15 @@ def analyze_operator_spectrum() -> None:
 
     n_samples = len(cast(Sized, split))
     all_eigenvalues = np.zeros((n_samples, num_evs))
-    logger.info(f"Analyzing spectrum for operator '{operator_type.value}' on {n_samples} samples...")
+    logger.info(f"Analyzing spectrum for operator '{operator_type}' on {n_samples} samples...")
     if is_topology_only_operator(operator_type):
         dummy_vertices = split[0][0].x.numpy()
         single_spectrum = compute_sample_spectrum(dummy_vertices, faces, operator_type, num_evs)
         all_eigenvalues[:] = single_spectrum
-        logger.info(f"Operator '{operator_type.value}' is topology-only; spectrum computed once.")
+        logger.info(f"Operator '{operator_type}' is topology-only; spectrum computed once.")
 
     else:
-        for i in tqdm(range(n_samples), desc=f'Spectrum computation ({operator_type.value})'):
+        for i in tqdm(range(n_samples), desc=f'Spectrum computation ({operator_type})'):
             item = split[i]
             vertices = item[0].x.numpy()
             all_eigenvalues[i] = compute_sample_spectrum(vertices, faces, operator_type, num_evs)
@@ -145,7 +145,7 @@ def _save_csv_outputs(
     raw_columns = [f'ev_{k + 1}' for k in range(num_evs)]
     df_raw = pd.DataFrame(eigenvalues, columns=raw_columns)
     df_raw.index.name = 'sample_id'
-    raw_csv_path = save_dir / f'spectrum_raw_{operator_type.value}.csv'
+    raw_csv_path = save_dir / f'spectrum_raw_{operator_type}.csv'
     df_raw.to_csv(raw_csv_path)
 
     summary_data = []
@@ -165,7 +165,7 @@ def _save_csv_outputs(
         )
 
     df_summary = pd.DataFrame(summary_data)
-    summary_csv_path = save_dir / f'spectrum_summary_{operator_type.value}.csv'
+    summary_csv_path = save_dir / f'spectrum_summary_{operator_type}.csv'
     df_summary.to_csv(summary_csv_path, index=False)
     logger.info(f'Saved raw CSV to {raw_csv_path}')
     logger.info(f'Saved summary CSV to {summary_csv_path}')
@@ -187,7 +187,7 @@ def _plot_and_save_distribution(
     )
     axes[0].set_xlabel('Eigenvalue Index (k)')
     axes[0].set_ylabel('Eigenvalue Magnitude')
-    axes[0].set_title(f'Distribution of First {num_evs} EVs ({operator_type.value})')
+    axes[0].set_title(f'Distribution of First {num_evs} EVs ({operator_type})')
     axes[0].grid(True, linestyle='--', alpha=0.5)
 
     means = np.mean(eigenvalues, axis=0)
@@ -195,11 +195,11 @@ def _plot_and_save_distribution(
     axes[1].errorbar(positions, means, yerr=stds, fmt='-o', capsize=4, color='navy')
     axes[1].set_xlabel('Eigenvalue Index (k)')
     axes[1].set_ylabel('Mean Eigenvalue ± Std')
-    axes[1].set_title(f'Spectrum Profile ({operator_type.value})')
+    axes[1].set_title(f'Spectrum Profile ({operator_type})')
     axes[1].grid(True, linestyle='--', alpha=0.5)
 
     plt.tight_layout()
-    plot_path = save_dir / f'spectrum_{operator_type.value}.png'
+    plot_path = save_dir / f'spectrum_{operator_type}.png'
     plt.savefig(plot_path, dpi=300)
     plt.close()
     logger.info(f'Saved spectrum plot to {plot_path}')
@@ -216,7 +216,7 @@ def _print_summary(
     mins = np.min(eigenvalues, axis=0)
     maxs = np.max(eigenvalues, axis=0)
     logger.info('=' * 60)
-    logger.info(f'Spectrum Summary Statistics ({operator_type.value})')
+    logger.info(f'Spectrum Summary Statistics ({operator_type})')
     logger.info('=' * 60)
     logger.info(f'{"Index (k)":<10}{"Mean":<14}{"Std":<14}{"Min":<14}{"Max":<14}')
     logger.info('-' * 60)

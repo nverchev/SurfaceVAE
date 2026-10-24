@@ -224,7 +224,7 @@ def is_sparse_matrix_group_valid(f: h5py.File, group_name: str) -> bool:
     if not isinstance(group, h5py.Group):
         return False
 
-    return all(key.value in group for key in SparseKeys)
+    return all(key in group for key in SparseKeys)
 
 
 def load_sparse_matrices_as_pytorch_preloaded(

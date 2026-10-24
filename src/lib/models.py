@@ -9,7 +9,7 @@ import torch
 
 from src.config import Experiment
 from src.data.structures import Inputs, Outputs
-from src.module.vae import BaseVAE, get_vae_module
+from src.module.vaes import BaseVAE, get_vae_module
 from src.data import get_databuilder, get_dummy_operator, N_VERTICES
 from src.utils.sparse import scipy_sparse_to_pytorch_sparse
 

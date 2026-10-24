@@ -6,8 +6,8 @@ import torch.nn as nn
 
 from src.config import Experiment, ModelOperators
 from src.data import Inputs, Outputs, compute_operators_on_the_fly
-from src.module.encoder import get_encoder
-from src.module.decoder import get_decoder
+from src.module.encoders import get_encoder
+from src.module.decoders import get_decoder
 
 
 class BaseVAE(nn.Module):
