@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from drytorch import Trainer
 
 from src.config import ExperimentConfig, Experiment, hydra_main
-from src.trackers import get_trackers, save_learning_curves
+from src.trackers import get_trackers
 from src.config.environment import DEBUG_MODE
 from src.data import get_splits
 from src.module import get_vae_module
@@ -99,7 +99,6 @@ def setup_and_train(cfg: ExperimentConfig) -> None:
 
     with exp.create_run(resume=resume, run_id=cfg.user.run_id, record=not DEBUG_MODE):
         train_vae()
-        save_learning_curves(trackers, f'VAE_{cfg.model.operator}', show=cfg.user.plot.show)
 
     return
 

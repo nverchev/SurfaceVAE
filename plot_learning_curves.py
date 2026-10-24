@@ -9,8 +9,10 @@ Usage::
     uv run plot_learning_curves.py user.run_id=2026-07-14@15h02m08s user.plot.show=true
 """
 
+from drytorch.trackers import base_classes
+
 from src.config import Experiment, ExperimentConfig, hydra_main
-from src.trackers import get_trackers, save_learning_curves
+from src.trackers import get_trackers
 
 
 @hydra_main
@@ -21,8 +23,13 @@ def main(cfg: ExperimentConfig) -> None:
     for tracker in trackers:
         exp.trackers.subscribe(tracker)
 
+    model_name = f'VAE_{cfg.model.operator}'
     with exp.create_run(resume=True, run_id=cfg.user.run_id):
-        save_learning_curves(trackers, f'VAE_{cfg.model.operator}', show=cfg.user.plot.show)
+        for tracker in trackers:
+            if isinstance(tracker, base_classes.BasePlotter):
+                tracker.save_plots(model_name)
+                if cfg.user.plot.show:
+                    tracker.plot(model_name)
 
     return
 

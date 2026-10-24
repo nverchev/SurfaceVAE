@@ -89,7 +89,7 @@ def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[t
 
         else:
             # with the CSV files, the figures of a resumed run also show the epochs of its earlier sessions
-            tracker_list.append(MatPlotter(metric_loader=metric_loader))
+            tracker_list.append(MatPlotter(metric_loader=metric_loader, show=cfg.user.plot.show))
 
     if cfg_trackers.plotly:
         try:
@@ -99,7 +99,7 @@ def get_trackers(cfg: ExperimentConfig, debug_mode: bool = DEBUG_MODE) -> list[t
             warnings.warn(f'Plotly not installed, skipping. {err}', stacklevel=2)
 
         else:
-            tracker_list.append(PlotlyPlotter(metric_loader=metric_loader))
+            tracker_list.append(PlotlyPlotter(metric_loader=metric_loader, show=cfg.user.plot.show))
 
     if cfg_trackers.pyvista:
         try:
