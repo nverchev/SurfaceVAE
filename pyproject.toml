@@ -40,9 +40,6 @@ dev = [
     "ruff==0.17.1",
 ]
 
-[tool.uv.sources]
-drytorch = { path = "../drytorch", editable = true }
-
 [tool.basedpyright]
 venvPath = "."
 venv = ".venv"
