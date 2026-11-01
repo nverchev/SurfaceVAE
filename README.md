@@ -57,6 +57,27 @@ DATASET_DIR=/path/to/data_parent_folder
 The first run will automatically preprocess the `.ply` files into `.npy` arrays and cache the graph operators.
 ---
 
+## Project structure
+
+```
+SurfaceVAE/
+├── configs/                      # Hydra configuration files
+│   ├── experiment/               # Model, training, data, user settings
+│   └── tuning/                   # Optuna study settings
+├── src/
+│   ├── config/                   # Experiment configuration and Hydra integration
+│   ├── data/                     # CoMA dataset loading, preprocessing, operators
+│   ├── module/                   # VAE encoder, decoder, layers
+│   ├── lib/                      # DRYTorch components: losses, metrics, learning schema, hooks, models
+│   └── utils/                    # Sparse utilities, indexable helpers, tuning tools
+├── train_vae.py                  # Main training entry point
+├── tune_vae.py                   # Hyperparameter tuning entry point
+├── analyze_operator_spectrum.py  # Operator spectrum analysis & CSV export entry point
+└── pyproject.toml
+```
+
+---
+
 ## Installation
 
 The project requires **Python 3.13** and uses [uv](https://github.com/astral-sh/uv) for dependency
@@ -252,27 +273,6 @@ You can generate, reconstruct, or interpolate mesh samples using the visualizati
 | `dirac_graph_norm` | Adjacency Dirac | Topology-only Dirac operator, generalises to chordal graphs |
 | `dirac` | Continuous Dirac | Continuous area-normalized Dirac operator (geometry-dependent) |
 | `dirac_stiff` | Dirac Stiff | Continuous Dirac operator with stiffness scaling (geometry-dependent) |
-
----
-
-## Project structure
-
-```
-SurfaceVAE/
-├── configs/                      # Hydra configuration files
-│   ├── experiment/               # Model, training, data, user settings
-│   └── tuning/                   # Optuna study settings
-├── src/
-│   ├── config/                   # Experiment configuration and Hydra integration
-│   ├── data/                     # CoMA dataset loading, preprocessing, operators
-│   ├── module/                   # VAE encoder, decoder, layers
-│   ├── lib/                      # DRYTorch components: losses, metrics, learning schema, hooks, models
-│   └── utils/                    # Sparse utilities, indexable helpers, tuning tools
-├── train_vae.py                  # Main training entry point
-├── tune_vae.py                   # Hyperparameter tuning entry point
-├── analyze_operator_spectrum.py  # Operator spectrum analysis & CSV export entry point
-└── pyproject.toml
-```
 
 ---
 
