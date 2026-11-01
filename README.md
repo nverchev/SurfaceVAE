@@ -48,13 +48,34 @@ performing extreme facial expressions, consistently registered on a shared graph
 
 ### Configure the data path
 
-Edit `configs/experiment/user/user_settings.yaml` and set `data_dir` to point to the folder where `COMA_data` is located, or set the environment variable `DATASET_DIR` in a `.env` file at the project root:
+Edit `configs/experiment/user/user.yaml` and set `data_dir` to point to the folder where `COMA_data` is located, or set the environment variable `DATASET_DIR` in a `.env` file at the project root:
 
 ```dotenv
 DATASET_DIR=/path/to/data_parent_folder
 ```
 
 The first run will automatically preprocess the `.ply` files into `.npy` arrays and cache the graph operators.
+---
+
+## Project structure
+
+```
+SurfaceVAE/
+├── configs/                      # Hydra configuration files
+│   ├── experiment/               # Model, training, data, user settings
+│   └── tuning/                   # Optuna study settings
+├── src/
+│   ├── config/                   # Experiment configuration and Hydra integration
+│   ├── data/                     # CoMA dataset loading, preprocessing, operators
+│   ├── module/                   # VAE encoder, decoder, layers
+│   ├── lib/                      # DRYTorch components: losses, metrics, learning schema, hooks, models
+│   └── utils/                    # Sparse utilities, indexable helpers, tuning tools
+├── train_vae.py                  # Main training entry point
+├── tune_vae.py                   # Hyperparameter tuning entry point
+├── analyze_operator_spectrum.py  # Operator spectrum analysis & CSV export entry point
+└── pyproject.toml
+```
+
 ---
 
 ## Installation
@@ -79,17 +100,22 @@ The default configuration trains with the **graph Laplacian** operator (`lap_gra
 
 ### Replicating the experiments
 
+Every experiment trains on the training and validation splits and is evaluated on the test
+split (`final=true`), as in the [results](#results-on-coma).
+
 #### 1. Interpolation Experiment (Generalisation to unseen frames)
 Predicting unseen frames:
 
 ##### Graph Laplacian with mean-shape decoder initialization
 ```bash
-uv run train_vae.py
+uv run train_vae.py final=true
+uv run evaluate_vae.py final=true
 ```
 
 ##### Graph Laplacian without mean-shape decoder initialization
 ```bash
-uv run train_vae.py model.use_mean_shape=false
+uv run train_vae.py model.use_mean_shape=false final=true
+uv run evaluate_vae.py model.use_mean_shape=false final=true
 ```
 
 #### 2. Extrapolation Experiment (Generalisation to unseen expressions)
@@ -97,62 +123,74 @@ Predicting unseen expressions:
 
 ##### Leaving out bareteeth expression
 ```bash
-uv run train_vae.py data/dataset=bareteeth
+uv run train_vae.py data/dataset=bareteeth final=true
+uv run evaluate_vae.py data/dataset=bareteeth final=true
 ```
 
 ##### Leaving out cheeks_in expression
 ```bash
-uv run train_vae.py data/dataset=cheeks_in
+uv run train_vae.py data/dataset=cheeks_in final=true
+uv run evaluate_vae.py data/dataset=cheeks_in final=true
 ```
 
 ##### Leaving out eyebrow expression
 ```bash
-uv run train_vae.py data/dataset=eyebrow
+uv run train_vae.py data/dataset=eyebrow final=true
+uv run evaluate_vae.py data/dataset=eyebrow final=true
 ```
 
 ##### Leaving out high_smile expression
 ```bash
-uv run train_vae.py data/dataset=high_smile
+uv run train_vae.py data/dataset=high_smile final=true
+uv run evaluate_vae.py data/dataset=high_smile final=true
 ```
 
 ##### Leaving out lips_back expression
 ```bash
-uv run train_vae.py data/dataset=lips_back
+uv run train_vae.py data/dataset=lips_back final=true
+uv run evaluate_vae.py data/dataset=lips_back final=true
 ```
 
 ##### Leaving out lips_up expression
 ```bash
-uv run train_vae.py data/dataset=lips_up
+uv run train_vae.py data/dataset=lips_up final=true
+uv run evaluate_vae.py data/dataset=lips_up final=true
 ```
 
 ##### Leaving out mouth_down expression
 ```bash
-uv run train_vae.py data/dataset=mouth_down
+uv run train_vae.py data/dataset=mouth_down final=true
+uv run evaluate_vae.py data/dataset=mouth_down final=true
 ```
 
 ##### Leaving out mouth_extreme expression
 ```bash
-uv run train_vae.py data/dataset=mouth_extreme
+uv run train_vae.py data/dataset=mouth_extreme final=true
+uv run evaluate_vae.py data/dataset=mouth_extreme final=true
 ```
 
 ##### Leaving out mouth_middle expression
 ```bash
-uv run train_vae.py data/dataset=mouth_middle
+uv run train_vae.py data/dataset=mouth_middle final=true
+uv run evaluate_vae.py data/dataset=mouth_middle final=true
 ```
 
 ##### Leaving out mouth_open expression
 ```bash
-uv run train_vae.py data/dataset=mouth_open
+uv run train_vae.py data/dataset=mouth_open final=true
+uv run evaluate_vae.py data/dataset=mouth_open final=true
 ```
 
 ##### Leaving out mouth_side expression
 ```bash
-uv run train_vae.py data/dataset=mouth_side
+uv run train_vae.py data/dataset=mouth_side final=true
+uv run evaluate_vae.py data/dataset=mouth_side final=true
 ```
 
 ##### Leaving out mouth_up expression
 ```bash
-uv run train_vae.py data/dataset=mouth_up
+uv run train_vae.py data/dataset=mouth_up final=true
+uv run evaluate_vae.py data/dataset=mouth_up final=true
 ```
 
 #### 3. Identity Experiment (Generalisation to unseen subject identities)
@@ -161,24 +199,25 @@ Predicting unseen subjects:
 ##### Graph Laplacian (default)
 ```bash
 uv run train_vae.py data/dataset=identity train.objective.beta=1 final=true
+uv run evaluate_vae.py data/dataset=identity train.objective.beta=1 final=true
 ```
 
 ##### Laplace-Beltrami Stiff (geometry-dependent)
 ```bash
 uv run train_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=lap_stiff
+uv run evaluate_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=lap_stiff
 ```
-*Run reference:*
-`[2026-07-25 19:04:14] - Experiment: main_data_dataset=identity_train.objective.beta=1_model.operator=lap_stiff_final - Stopping run: 2026-07-23@20h52m39s`
-
 ##### Laplace-Beltrami (geometry-dependent, normalized)
 ```bash
 uv run train_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=lap_beltrami
+uv run evaluate_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=lap_beltrami
 ```
 
 
 ##### Discrete Dirac operator with stiffness scaling
 ```bash
 uv run train_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=dirac_stiff
+uv run evaluate_vae.py data/dataset=identity train.objective.beta=1 final=true model.operator=dirac_stiff
 ```
 
 
@@ -237,27 +276,6 @@ You can generate, reconstruct, or interpolate mesh samples using the visualizati
 
 ---
 
-## Project structure
-
-```
-SurfaceVAE/
-├── configs/                      # Hydra configuration files
-│   ├── experiment/               # Model, training, data, user settings
-│   └── tuning/                   # Optuna study settings
-├── src/
-│   ├── config/                   # Experiment configuration and Hydra integration
-│   ├── data/                     # CoMA dataset loading, preprocessing, operators
-│   ├── module/                   # VAE encoder, decoder, layers
-│   ├── train/                    # Training loop, loss, learning schema, hooks
-│   └── utils/                    # Sparse utilities, indexable helpers, tuning tools
-├── train_vae.py                  # Main training entry point
-├── tune_vae.py                   # Hyperparameter tuning entry point
-├── analyze_operator_spectrum.py  # Operator spectrum analysis & CSV export entry point
-└── pyproject.toml
-```
-
----
-
 ## Results on CoMA
 
 ### Interpolation Experiment (Generalisation to unseen frames)
@@ -274,8 +292,8 @@ The table below shows the performance of the model on the interpolation split us
 | **SurfaceVAE (no mean shape)** | Graph Laplacian (`lap_graph_norm`) | 2.031 ± 1.862 | 36.5 | **33,779** |
 | **SurfaceVAE** | Laplace-Beltrami (`lap_beltrami`) | 0.838 ± 0.832 | 72.4 | **33,779** |
 | **SurfaceVAE** | Laplace-Beltrami Stiff (`lap_stiff`) | 0.814 ± 0.831 | 73.6 | **33,779** |
-| **SurfaceVAE** | Continuous Dirac (`dirac`) | TBD | TBD | **33,779** |
-| **SurfaceVAE** | Dirac Stiff (`dirac_stiff`) | TBD | TBD | **33,779** |
+| **SurfaceVAE** | Continuous Dirac (`dirac`) | 0.990 ± 0.932 | 65.7 | **33,779** |
+| **SurfaceVAE** | Dirac Stiff (`dirac_stiff`) | 1.000 ± 0.928 | 65.3 | **33,779** |
 | **SurfaceVAE** | Graph Dirac (`dirac_graph_norm`) | 0.988 ± 0.948 | 66.6 | **33,779** |
 | **SurfaceVAE** | Graph Laplacian (`lap_graph_norm`) | **0.768 ± 0.764** | **75.8** | **33,779** |
 

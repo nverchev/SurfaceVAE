@@ -3,21 +3,25 @@
 seed: 42
 
 # Options for training efficiency
-cpu: false
+device: auto  # auto = the available accelerator
 n_workers: 0
-n_subprocesses: 0
+n_subprocesses: 0  # 0 = no DDP
 lazy_load: true
 on_the_fly: false
 checkpoint_every: 100
-load_checkpoint: 0
+load: 0  # 0 = start from scratch, -1 = the latest checkpoint
+run_id: null  # null = the last run
 
 # Optional trackers for monitoring the experiment
 trackers:
   hydra: true
-  tensorboard: true
+  tensorboard: false
   wandb: false
   sqlalchemy: false
   csv: true
+  matplotlib: true
+  plotly: false
+  pyvista: true
 
 # Options for random generation
 generate:
@@ -29,12 +33,12 @@ generate:
   z_max: 2.0
   z_std: 0.9
 
-# Options for visualization
+# Plotting
 plot:
-  interactive: false
   sample_indices: []
   use_train: false
   use_mean_shape: true
   interpolation_step_factor: 0.3
   interpolation_steps: 4
   num_eigenvectors: 10
+  show: false

@@ -1,7 +1,6 @@
 """Main script for running the PCA experiment on the dataset."""
 
 import logging
-import sys
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -9,7 +8,9 @@ from sklearn.decomposition import PCA
 
 from drytorch.core.log_events import MetricEvent
 
-from src.config import AllConfig, Experiment, get_trackers, hydra_main
+from src.config import ExperimentConfig, Experiment, hydra_main
+from src.trackers import get_trackers
+from src.config.environment import DEBUG_MODE
 from src.data import get_splits
 
 if TYPE_CHECKING:
@@ -17,11 +18,6 @@ if TYPE_CHECKING:
 else:
     Trial = Any
 
-
-DEBUG_MODE = (
-    any(module in sys.modules for module in ("pydevd", "debugpy", "pdb"))
-    or sys.gettrace() is not None
-)
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +38,7 @@ def train_pca() -> None:
     train_flat = train_normalized.reshape(num_train, num_features)
     eval_flat = eval_normalized.reshape(num_eval, num_features)
     dim_latent = cfg.model.dim_latent
-    logger.info(f"Fitting PCA with {dim_latent} components on {num_train} samples")
+    logger.info(f'Fitting PCA with {dim_latent} components on {num_train} samples')
     pca = PCA(n_components=dim_latent)
     pca.fit(train_flat)
     eval_reconstructed_flat = pca.inverse_transform(pca.transform(eval_flat))
@@ -54,37 +50,35 @@ def train_pca() -> None:
     median_err = np.median(errors)
     greater_than_1_pct = np.mean(errors > 1.0)
     MetricEvent(
-        model_name="PCA",
-        source_name="Test",
+        model_name='PCA',
+        source_name='Test',
         epoch=0,
         metrics={
-            "error_mm_mean": float(mean_err),
-            "error_mm_std": float(std_err),
-            "error_mm_median": float(median_err),
-            "error_mm_>1": float(greater_than_1_pct),
+            'error_mm_mean': float(mean_err),
+            'error_mm_std': float(std_err),
+            'error_mm_median': float(median_err),
+            'error_mm_>1': float(greater_than_1_pct),
         },
     )
     return
 
 
-def setup_and_train(cfg: AllConfig) -> None:
+def setup_and_train(cfg: ExperimentConfig) -> None:
     """Set up experiment and start PCA fit."""
-    trackers = get_trackers(cfg, debug=DEBUG_MODE)
-    resume = cfg.user.load_checkpoint != 0
-    exp = Experiment(
-        cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags
-    )
+    trackers = get_trackers(cfg)
+    resume = cfg.user.load != 0 or cfg.user.run_id is not None
+    exp = Experiment(cfg, name=cfg.name, par_dir=cfg.user.path.version_dir, tags=cfg.tags)
     for tracker in trackers:
         exp.trackers.subscribe(tracker)
 
-    with exp.create_run(resume=resume, record=not DEBUG_MODE):
+    with exp.create_run(resume=resume, run_id=cfg.user.run_id, record=not DEBUG_MODE):
         train_pca()
 
     return
 
 
 @hydra_main
-def main(cfg: AllConfig) -> None:
+def main(cfg: ExperimentConfig) -> None:
     """Entry point for training."""
     n_processes = cfg.user.n_subprocesses
     if n_processes:
@@ -97,5 +91,5 @@ def main(cfg: AllConfig) -> None:
     return
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from src.data.structures import Input, Target
+from src.data.structures import Inputs, Targets
 from src.utils.sparse import scipy_sparse_to_pytorch_sparse
 from collections.abc import Sequence
 from src.data import operators
@@ -24,12 +24,12 @@ class Partitions(enum.Enum):
     test = enum.auto()
 
 
-class AbstractSplit(Dataset[tuple[Input, Target]], metaclass=ABCMeta):
+class DataSplit(Dataset[tuple[Inputs, Targets]], metaclass=ABCMeta):
     @abstractmethod
     def __len__(self) -> int: ...
 
     @abstractmethod
-    def __getitem__(self, index: int) -> tuple[Input, Target]: ...
+    def __getitem__(self, index: int) -> tuple[Inputs, Targets]: ...
 
     @property
     @abstractmethod
@@ -52,7 +52,7 @@ class AbstractSplit(Dataset[tuple[Input, Target]], metaclass=ABCMeta):
     def faces(self) -> np.ndarray: ...
 
 
-class COMADatasetSplit(AbstractSplit):
+class COMASplit(DataSplit):
     """COMADataset for a specific partition."""
 
     def __init__(
@@ -61,7 +61,7 @@ class COMADatasetSplit(AbstractSplit):
         faces: np.ndarray,
         operator: Sequence[torch.Tensor] | None,
         adjoint_operator: Sequence[torch.Tensor] | None,
-        labels: np.ndarray | None = None,
+        labels: np.ndarray,
         class_names: list[str] | None = None,
     ) -> None:
         super().__init__()
@@ -70,9 +70,7 @@ class COMADatasetSplit(AbstractSplit):
         self._faces = faces
         self._mean_shape = self.get_mean_shape()
         self._std_shape = self.get_std_shape()
-        self._mean_operator, self._mean_operator_adjoint = self.get_mean_operators(
-            cfg.model.operator
-        )
+        self._mean_operator, self._mean_operator_adjoint = self.get_mean_operators(cfg.model.operator)
         self._operators = operator
         self._adjoint_operators = adjoint_operator
         self.labels = labels
@@ -105,20 +103,14 @@ class COMADatasetSplit(AbstractSplit):
     def get_std_shape(self) -> np.ndarray:
         return self._shapes.std(axis=0)
 
-    def get_mean_operators(
-        self, operator_type: ModelOperators
-    ) -> tuple[torch.Tensor, torch.Tensor | None]:
-        mean_operator, mean_operator_adjoint = operators.build_operator(
-            (self._mean_shape, self._faces), operator_type
-        )
+    def get_mean_operators(self, operator_type: ModelOperators) -> tuple[torch.Tensor, torch.Tensor | None]:
+        mean_operator, mean_operator_adjoint = operators.build_operator((self._mean_shape, self._faces), operator_type)
         if mean_operator is None:
             return torch.empty(0), torch.empty(0)
 
         mean_operator_sparse = scipy_sparse_to_pytorch_sparse(mean_operator)
         if mean_operator_adjoint is not None:
-            mean_operator_adjoint_sparse = scipy_sparse_to_pytorch_sparse(
-                mean_operator_adjoint
-            )
+            mean_operator_adjoint_sparse = scipy_sparse_to_pytorch_sparse(mean_operator_adjoint)
         else:
             mean_operator_adjoint_sparse = None
 
@@ -127,7 +119,7 @@ class COMADatasetSplit(AbstractSplit):
     def __len__(self) -> int:
         return len(self._shapes)
 
-    def __getitem__(self, index: int) -> tuple[Input, Target]:
+    def __getitem__(self, index: int) -> tuple[Inputs, Targets]:
         sample = torch.from_numpy(self._shapes[index])
         if self._operators is not None:
             operator = self._operators[index]
@@ -139,11 +131,7 @@ class COMADatasetSplit(AbstractSplit):
         else:
             operator_adjoint = None
 
-        inputs = Input(x=sample, operator=operator, operator_adjoint=operator_adjoint)
-        label = (
-            torch.tensor(self.labels[index])
-            if self.labels is not None
-            else torch.empty(0)
-        )
-        targets = Target(x=sample, label=label)
+        inputs = Inputs(x=sample, operator=operator, operator_adjoint=operator_adjoint)
+        label = torch.tensor(self.labels[index])
+        targets = Targets(x=sample, label=label)
         return inputs, targets

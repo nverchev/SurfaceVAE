@@ -18,10 +18,10 @@ torch.sparse.check_sparse_tensor_invariants.disable()
 class SparseKeys(enum.StrEnum):
     """HDF5 sparse matrix keys."""
 
-    ROW = "row"
-    COL = "col"
-    DATA = "data"
-    SHAPE = "shape"
+    ROW = 'row'
+    COL = 'col'
+    DATA = 'data'
+    SHAPE = 'shape'
 
 
 class LazyH5SparseTensors(Sequence[torch.Tensor]):
@@ -30,14 +30,12 @@ class LazyH5SparseTensors(Sequence[torch.Tensor]):
     def __init__(self, h5_path: str | pathlib.Path, group_path: str) -> None:
         self.h5_path = h5_path
         self.group_path = group_path
-        with h5py.File(self.h5_path, "r") as f:
+        with h5py.File(self.h5_path, 'r', locking=False) as f:
             group = get_h5_group(f, self.group_path)
             row = get_h5_dataset(group, SparseKeys.ROW)[:]
             col = get_h5_dataset(group, SparseKeys.COL)[:]
             self.shape = torch.Size(tuple(get_h5_dataset(group, SparseKeys.SHAPE)[:]))
-            self.indices = torch.stack(
-                [torch.from_numpy(row).long(), torch.from_numpy(col).long()], dim=0
-            )
+            self.indices = torch.stack([torch.from_numpy(row).long(), torch.from_numpy(col).long()], dim=0)
             self._length = get_h5_dataset(group, SparseKeys.DATA).shape[0]
         self._f = None
         self._pid = None
@@ -48,7 +46,7 @@ class LazyH5SparseTensors(Sequence[torch.Tensor]):
 
         current_pid = os.getpid()
         if self._f is None or self._pid != current_pid:
-            self._f = h5py.File(self.h5_path, "r")
+            self._f = h5py.File(self.h5_path, 'r', locking=False)
             self._pid = current_pid
         return self._f
 
@@ -77,9 +75,7 @@ class LazyH5SparseTensors(Sequence[torch.Tensor]):
 class PreloadedSparseTensors(Sequence[torch.Tensor]):
     """Memory-efficient preloaded sequence of sparse tensors sharing indices."""
 
-    def __init__(
-        self, indices: torch.Tensor, values: torch.Tensor, shape: torch.Size
-    ) -> None:
+    def __init__(self, indices: torch.Tensor, values: torch.Tensor, shape: torch.Size) -> None:
         self.indices = indices
         self.values = values
         self.shape = shape
@@ -129,16 +125,16 @@ class CombinedSparseTensors(Sequence[torch.Tensor]):
             index += self._total_len
 
         if index < 0 or index >= self._total_len:
-            raise IndexError("Index out of range")
+            raise IndexError('Index out of range')
 
         curr_idx = index
-        for seq, length in zip(self.sequences, self._lengths):
+        for seq, length in zip(self.sequences, self._lengths, strict=True):
             if curr_idx < length:
                 return seq[curr_idx]
 
             curr_idx -= length
 
-        raise IndexError("Index out of range")
+        raise IndexError('Index out of range')
 
 
 def scipy_sparse_to_pytorch_sparse(
@@ -214,9 +210,7 @@ def load_sparse_matrix_as_pytorch(group: h5py.Group) -> torch.Tensor:
     col = get_h5_dataset(group, SparseKeys.COL)[:]
     data = get_h5_dataset(group, SparseKeys.DATA)[:]
     shape = tuple(get_h5_dataset(group, SparseKeys.SHAPE)[:])
-    indices = torch.stack(
-        [torch.from_numpy(row).long(), torch.from_numpy(col).long()], dim=0
-    )
+    indices = torch.stack([torch.from_numpy(row).long(), torch.from_numpy(col).long()], dim=0)
     values = torch.from_numpy(data).float()
     return torch.sparse_coo_tensor(indices, values, torch.Size(shape))
 
@@ -230,7 +224,7 @@ def is_sparse_matrix_group_valid(f: h5py.File, group_name: str) -> bool:
     if not isinstance(group, h5py.Group):
         return False
 
-    return all(key.value in group for key in SparseKeys)
+    return all(key in group for key in SparseKeys)
 
 
 def load_sparse_matrices_as_pytorch_preloaded(
@@ -241,9 +235,7 @@ def load_sparse_matrices_as_pytorch_preloaded(
     col = get_h5_dataset(group, SparseKeys.COL)[:]
     data = get_h5_dataset(group, SparseKeys.DATA)[:]
     shape = tuple(get_h5_dataset(group, SparseKeys.SHAPE)[:])
-    indices = torch.stack(
-        [torch.from_numpy(row).long(), torch.from_numpy(col).long()], dim=0
-    )
+    indices = torch.stack([torch.from_numpy(row).long(), torch.from_numpy(col).long()], dim=0)
     values = torch.from_numpy(data).float()
     return PreloadedSparseTensors(indices, values, torch.Size(shape))
 
@@ -258,9 +250,7 @@ def create_incremental_sparse_dataset(
     group.create_dataset(SparseKeys.COL, data=op.col)
     group.create_dataset(SparseKeys.SHAPE, data=np.array(op.shape))
     nnz = len(op.data)
-    ds = group.create_dataset(
-        SparseKeys.DATA, shape=(n_matrices, nnz), dtype=np.float32
-    )
+    ds = group.create_dataset(SparseKeys.DATA, shape=(n_matrices, nnz), dtype=np.float32)
     ds[0] = op.data
     return ds
 

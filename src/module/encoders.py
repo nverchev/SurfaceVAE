@@ -24,7 +24,7 @@ class BaseEncoder(nn.Module, metaclass=ABCMeta):
         super().__init__()
         cfg = Experiment.get_config()
         self.operator_type = cfg.model.operator
-        self.act = cfg.model.activation_cls()
+        self.act = cfg.model.act_cls()
         self.n_features = cfg.model.n_features
         self.dim_latent = cfg.model.dim_latent
         self.momentum = cfg.model.batch_norm_momentum
@@ -137,9 +137,9 @@ def get_encoder() -> BaseEncoder:
     """Get the correct encoder based on configuration."""
     cfg = Experiment.get_config()
     if cfg.model.operator in (
-        ModelOperators.dirac,
-        ModelOperators.dirac_stiff,
-        ModelOperators.dirac_graph_norm,
+        ModelOperators.DIRAC,
+        ModelOperators.DIRAC_STIFF,
+        ModelOperators.DIRAC_GRAPH_NORM,
     ):
         return DirEncoder()
 

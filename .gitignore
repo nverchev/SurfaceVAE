@@ -1,6 +1,7 @@
 **/__pycache__
 *.pyc
 .venv/
+/data/
 experiments*/
 optimization_db/
 outputs/
@@ -8,8 +9,8 @@ outputs/
 .idea/
 .vscode/
 wandb/
-uv.lock
 .agent/
+.claude/
 reference/
 adjacency.npy
 faces.npy

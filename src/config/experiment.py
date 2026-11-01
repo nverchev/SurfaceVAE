@@ -1,89 +1,35 @@
 """Contains the Experiment class for the project and related helper functions."""
 
-import os
-
-from hydra.core import utils as hydra_utils
-
 import drytorch
 
-from drytorch.core import tracking
-from drytorch.trackers import logging
 
-from src.config.specs import AllConfig
+from src.config.environment import get_current_branch
+from src.config.specs import ExperimentConfig
 
 
-class Experiment(drytorch.Experiment[AllConfig]):
+class Experiment(drytorch.Experiment[ExperimentConfig]):
     """Contains the specifications for the current experiment."""
 
     pass
 
 
-def get_trackers(cfg: AllConfig, debug: bool = False) -> list[tracking.Tracker]:
-    """Get trackers from according to the user configuration."""
-    cfg_trackers = cfg.user.trackers
-    cfg_hydra = cfg.user.hydra
-    hydra_utils.configure_log(cfg_hydra.job_logging)
-    drytorch.init_trackers(mode="hydra")
-    tracker_list: list[tracking.Tracker] = []
-    if debug:
-        tracking.DEFAULT_TRACKERS.pop("YamlDumper", None)
-        return tracker_list
+def get_variation(variation: object, overrides: list[str], /) -> tuple[str, list[str]]:
+    """Add the overrides to the variation of the experiment.
 
-    if cfg_trackers.wandb:
-        import wandb
+    Args:
+        variation: variation of the configuration, the current git branch when unset; the command
+            line gives numbers as numbers.
+        overrides: raw Hydra task override strings.
 
-        from drytorch.trackers.wandb import Wandb
-
-        tracker_list.append(Wandb(settings=wandb.Settings(project=cfg.project)))
-
-    if cfg_trackers.hydra:
-        from drytorch.trackers.hydra import HydraLink
-
-        tracker_list.append(HydraLink(hydra_dir=cfg.user.hydra.output_dir))
-
-    if cfg_trackers.csv:
-        from drytorch.trackers.csv import CSVDumper
-
-        tracker_list.append(CSVDumper())
-
-    if cfg_trackers.tensorboard:
-        from drytorch.trackers.tensorboard import TensorBoard
-
-        tracker_list.append(TensorBoard())
-
-    if cfg_trackers.sqlalchemy:
-        import sqlalchemy
-
-        from drytorch.trackers.sqlalchemy import SQLConnection
-
-        engine_path = cfg.user.path.version_dir / "metrics.db"
-        cfg.user.path.version_dir.mkdir(exist_ok=True)
-        engine = sqlalchemy.create_engine(f"sqlite:///{engine_path}")
-        tracker_list.append(SQLConnection(engine=engine))
-
-    return tracker_list
-
-
-def update_exp_name(cfg: AllConfig, overrides: list[str]) -> None:
-    """Adds the overrides to the name for the experiment."""
-    overrides = [
+    Returns:
+        The variation followed by the overrides, and the overrides as tags.
+    """
+    filtered_overrides = [
         override
         for override in overrides
-        if override.split(".")[0] != "user"
-        and override.split("=")[0] not in ("final", "variation")
+        if override.split('.')[0] != 'user' and override.split('=')[0] not in ('final', 'variation')
     ]
-    cfg.variation = "_".join([cfg.resolved_variation, *overrides]).replace("/", "_")
-    cfg.tags = overrides
-    return
-
-
-def set_tuning_logging() -> None:
-    """Set the logging for tuning runs."""
-    if "PARALLEL_SEQ" in os.environ:
-        drytorch.remove_all_default_trackers()
-        drytorch.extend_default_trackers([logging.BuiltinLogger()])
-        logging.set_verbosity(logging.INFO_LEVELS.test)
-    else:
-        drytorch.init_trackers(mode="minimal")
-
-    return
+    sorted_overrides = sorted(filtered_overrides)
+    base = str(variation) if variation is not None else get_current_branch()
+    name = '_'.join([base, *sorted_overrides]).replace('/', '_')
+    return name, sorted_overrides

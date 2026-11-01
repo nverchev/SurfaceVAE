@@ -1,6 +1,6 @@
 defaults:
-  - learn: default_learn
-  - early_stopping: default_early_stopping
+  - learn: learn
+  - early_stopping: early_stopping
   - _self_
 
 batch_size: 16

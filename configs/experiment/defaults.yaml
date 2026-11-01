@@ -1,10 +1,9 @@
 defaults:
-  - all_config
   - model: vae
-  - user: user_settings
-  - data: default_data
-  - train: default_train
+  - user: user
+  - data: data
+  - train: train
   - _self_
 
-variation:
+variation: null  # null = the current git branch
 final: false
